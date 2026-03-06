@@ -67,7 +67,7 @@ box
 
     const embed = new EmbedBuilder()
     .setTitle("🌽 NGÔ CAY")
-    .setImage("https://i.imgur.com/9Xn6F6C.png")
+    .setImage("https://png.pngtree.com/png-vector/20250918/ourmid/pngtree-hot-steamed-corn-on-cob-served-with-butter-and-masala-seasoning-png-image_17496796.webp")
     .setColor("Yellow");
 
     message.reply({embeds:[embed]});
