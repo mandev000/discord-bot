@@ -48,7 +48,7 @@ thưởng thơ
 
 🎲 **CASINO**
 
-taixiu tai 100
+taixiu
 coin
 dice
 slot
@@ -122,26 +122,29 @@ Muối ớt cay nhẹ ngập tràn mê say 🌽
     message.reply(`🎁 Bạn nhận **${reward} coin**`);
   }
 
-  // =================
-  // TÀI XỈU
-  // =================
+// =================
+// TÀI XỈU ANIMATION
+// =================
 
-  if (msg.startsWith("taixiu")) {
+if (msg.startsWith("taixiu")) {
 
-    const args = msg.split(" ");
+  const args = msg.split(" ");
+  const choice = args[1];
+  const bet = parseInt(args[2]) || 50;
 
-    const choice = args[1];
-    const bet = parseInt(args[2]);
+  if (!choice || (choice !== "tai" && choice !== "xiu")) {
+    message.reply("Ví dụ: taixiu tai(xiu) sotien");
+    return;
+  }
 
-    if(!choice || !bet){
-      message.reply("Ví dụ: taixiu tai 100");
-      return;
-    }
+  if (money[user] < bet) {
+    message.reply("💸 Bạn không đủ coin!");
+    return;
+  }
 
-    if(money[user] < bet){
-      message.reply("❌ Bạn không đủ coin");
-      return;
-    }
+  const loading = await message.reply("🎲 Đang lắc xúc xắc...");
+
+  setTimeout(() => {
 
     const d1 = Math.floor(Math.random()*6)+1;
     const d2 = Math.floor(Math.random()*6)+1;
@@ -151,7 +154,7 @@ Muối ớt cay nhẹ ngập tràn mê say 🌽
 
     const result = total >= 11 ? "tai":"xiu";
 
-    let win = choice === result;
+    const win = choice === result;
 
     if(win){
       money[user]+=bet;
@@ -160,8 +163,8 @@ Muối ớt cay nhẹ ngập tràn mê say 🌽
     }
 
     const embed = new EmbedBuilder()
+    .setTitle("🎲 KẾT QUẢ TÀI XỈU")
     .setColor(win?"Green":"Red")
-    .setTitle("🎲 TÀI XỈU")
     .setDescription(`
 🎲 ${d1} | ${d2} | ${d3}
 
@@ -169,12 +172,16 @@ Tổng: **${total}**
 
 Kết quả: **${result.toUpperCase()}**
 
-${win?`🎉 Bạn thắng +${bet}`:`💀 Bạn thua -${bet}`}
+💰 Cược: **${bet}**
+
+${win?`🎉 Thắng +${bet}`:`💀 Thua -${bet}`}
 `);
 
-    message.reply({embeds:[embed]});
-  }
+    loading.edit({content:"", embeds:[embed]});
 
+  }, 2000);
+
+                  }
   // =================
   // COIN
   // =================
