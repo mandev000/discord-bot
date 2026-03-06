@@ -340,7 +340,7 @@ message.reply(`🎁 Bạn nhận **${codes[code]} coin**`);
 
 if(msg.startsWith("addcode")){
 
-if(message.author.id !== "ADMIN_ID")
+if(message.author.id !== "1031563204360409158")
 return;
 
 const code = args[1];
