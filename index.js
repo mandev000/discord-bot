@@ -42,5 +42,39 @@ Thưởng thơ, ăn ngô, đất trời bình yên 🌽🔥`);
     });
   }
 });
+// MINIGAME TÀI XỈU
+if (message.content.startsWith("taixiu")) {
 
+const args = message.content.split(" ");
+const choice = args[1];
+
+if (!choice) {
+return message.reply("🎲 Chọn **tai** hoặc **xiu**\nVí dụ: taixiu tai");
+}
+
+const dice1 = Math.floor(Math.random() * 6) + 1;
+const dice2 = Math.floor(Math.random() * 6) + 1;
+const dice3 = Math.floor(Math.random() * 6) + 1;
+
+const total = dice1 + dice2 + dice3;
+
+let result = total >= 11 ? "tai" : "xiu";
+
+if (choice === result) {
+message.reply(`🎉 Bạn thắng!
+
+🎲 Xúc xắc: ${dice1} | ${dice2} | ${dice3}
+📊 Tổng: ${total}
+🔥 Kết quả: ${result.toUpperCase()}`);
+} else {
+message.reply(`💀 Bạn thua!
+
+🎲 Xúc xắc: ${dice1} | ${dice2} | ${dice3}
+📊 Tổng: ${total}
+🔥 Kết quả: ${result.toUpperCase()}`);
+    });
+  }
+});
+
+}
 client.login(process.env.TOKEN);
