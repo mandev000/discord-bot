@@ -40,13 +40,15 @@ ping
 money
 daily
 top
+
+🌽 **FUN**
+
 ngocay
 thưởng thơ
 
 🎲 **CASINO**
 
-taixiu tai
-taixiu xiu
+taixiu tai 100
 coin
 dice
 slot
@@ -58,11 +60,36 @@ box
   }
 
   // =================
-  // PING
+  // NGÔ CAY
   // =================
 
-  if (msg === "ping") {
-    message.reply("🏓 Pong!");
+  if (msg === "ngocay") {
+
+    const embed = new EmbedBuilder()
+    .setTitle("🌽 NGÔ CAY")
+    .setImage("https://i.imgur.com/9Xn6F6C.png")
+    .setColor("Yellow");
+
+    message.reply({embeds:[embed]});
+  }
+
+  // =================
+  // THƯỞNG THƠ
+  // =================
+
+  if (msg === "thưởng thơ") {
+
+    const embed = new EmbedBuilder()
+    .setTitle("📜 THƠ NGÔ CAY")
+    .setColor("Orange")
+    .setDescription(`
+Ngô vàng nướng lửa chiều nay  
+Hương thơm lan gió ngất ngây đồng làng  
+Than hồng đỏ rực bếp than  
+Muối ớt cay nhẹ ngập tràn mê say 🌽
+`);
+
+    message.reply({embeds:[embed]});
   }
 
   // =================
@@ -71,12 +98,7 @@ box
 
   if (msg === "money") {
 
-    const embed = new EmbedBuilder()
-    .setColor("Green")
-    .setTitle("💰 TÀI KHOẢN")
-    .setDescription(`Bạn có **${money[user]} coin**`);
-
-    message.reply({embeds:[embed]});
+    message.reply(`💰 Bạn có **${money[user]} coin**`);
   }
 
   // =================
@@ -95,7 +117,7 @@ box
     lastDaily[user] = now;
 
     const reward = Math.floor(Math.random()*200)+100;
-    money[user] += reward;
+    money[user]+=reward;
 
     message.reply(`🎁 Bạn nhận **${reward} coin**`);
   }
@@ -107,7 +129,19 @@ box
   if (msg.startsWith("taixiu")) {
 
     const args = msg.split(" ");
+
     const choice = args[1];
+    const bet = parseInt(args[2]);
+
+    if(!choice || !bet){
+      message.reply("Ví dụ: taixiu tai 100");
+      return;
+    }
+
+    if(money[user] < bet){
+      message.reply("❌ Bạn không đủ coin");
+      return;
+    }
 
     const d1 = Math.floor(Math.random()*6)+1;
     const d2 = Math.floor(Math.random()*6)+1;
@@ -120,9 +154,9 @@ box
     let win = choice === result;
 
     if(win){
-      money[user]+=80;
+      money[user]+=bet;
     }else{
-      money[user]-=40;
+      money[user]-=bet;
     }
 
     const embed = new EmbedBuilder()
@@ -135,46 +169,14 @@ Tổng: **${total}**
 
 Kết quả: **${result.toUpperCase()}**
 
-${win?"🎉 Bạn thắng +80":"💀 Bạn thua -40"}
+${win?`🎉 Bạn thắng +${bet}`:`💀 Bạn thua -${bet}`}
 `);
 
     message.reply({embeds:[embed]});
   }
-  // =================
-// NGÔ CAY
-// =================
-
-if (msg === "ngocay") {
-
-  const embed = new EmbedBuilder()
-  .setTitle("🌽 NGÔ CAY")
-  .setColor("Orange")
-  .setDescription("Ngô cay thơm ngon 🔥")
-  .setImage("https://i.imgur.com/9Xn6F6C.png");
-
-  message.reply({embeds:[embed]});
-}
-  // =================
-// THƯỞNG THƠ
-// =================
-
-if (msg === "thưởng thơ") {
-
-  const embed = new EmbedBuilder()
-  .setTitle("📜 THƯỞNG THƠ")
-  .setColor("Purple")
-  .setDescription(`
-Ngô vàng thơm giữa chiều nay  
-Gió ru đồng bãi ngất ngây hương đồng  
-Nướng lên thơm lửa hồng  
-Chấm thêm muối ớt cay nồng mê say 🌽
-`);
-
-  message.reply({embeds:[embed]});
-}
 
   // =================
-  // COIN FLIP
+  // COIN
   // =================
 
   if (msg === "coin") {
