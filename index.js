@@ -19,20 +19,17 @@ client.on("messageCreate", (message) => {
     message.reply("📜 Lệnh:\nhelp\nping\nngocay");
   }
   
-    if (message.content.toLowerCase() === "Thưởng Thơ") {
-    message.reply("Ngô vàng thơm giữa chiều nay,
-Rắc thêm chút ớt hóa thành ngô cay.
-Cắn vào giòn rụm mê say,
-Vừa ăn vừa hít, mắt cay cay cười. 😆
-Hạt ngô nhỏ bé xinh tươi,
-Tẩm thêm vị ớt làm người nhớ lâu.
-Bạn bè ngồi tụm bên nhau,
-Gói ngô cay nhỏ hóa thành niềm vui. 🌶️🌽
-Ăn rồi lại muốn ăn hoài,
-Cay cay đầu lưỡi, ngọt ngoài hạt ngô.
-Đơn sơ món quà tuổi nhỏ,
-Mà sao thương nhớ đến giờ vẫn đây");
-  }
+if (message.content === "Thưởng Thơ") {
+message.reply(`Ngô vàng thơm giữa chiều nay
+Gió nhẹ thổi qua ruộng ngô lay
+Hạt vàng nướng lửa thơm bay
+Thêm chút ớt cay đậm vị ngày hè.
+
+Cắn vào giòn rụm mê say
+Ngọt bùi hòa với chút cay đầu môi
+Bạn bè ngồi cạnh cười vui
+Thưởng thơ, ăn ngô, đất trời bình yên 🌽🔥`);
+}
 
   if (message.content.toLowerCase() === "ping") {
     message.reply("🏓 Pong!");
