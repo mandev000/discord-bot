@@ -5,7 +5,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
-  ],
+  ]
 });
 
 let money = {};
@@ -15,6 +15,7 @@ client.once("ready", () => {
 });
 
 client.on("messageCreate", (message) => {
+
   if (message.author.bot) return;
 
   const msg = message.content.toLowerCase();
@@ -24,7 +25,7 @@ client.on("messageCreate", (message) => {
 
   // HELP
   if (msg === "help") {
-    message.reply(`📜 DANH SÁCH LỆNH
+    message.reply(`📜 LỆNH BOT
 
 help
 ping
@@ -34,7 +35,94 @@ thưởng thơ
 🎮 GAME
 taixiu tai
 taixiu xiu
-doanso 1-10
+doanso 5
+flip
+
+💰 TIỀN
+daily
+money`);
+  }
+
+  // PING
+  if (msg === "ping") {
+    message.reply("🏓 Pong!");
+  }
+
+  // NGOCAY
+  if (msg === "ngocay") {
+    message.reply({
+      content: "🌽 Ngô cay",
+      files: ["https://i.imgur.com/9Xn6F6C.png"]
+    });
+  }
+
+  // THƯỞNG THƠ
+  if (msg === "thưởng thơ") {
+    message.reply(`Ngô vàng thơm giữa chiều nay
+Gió ru đồng bãi ngất ngây hương đồng
+Nướng lên thơm lửa hồng
+Chấm thêm muối ớt cay nồng mê say 🌽`);
+  }
+
+  // TÀI XỈU
+  if (msg.startsWith("taixiu")) {
+
+    const args = msg.split(" ");
+    const choice = args[1];
+
+    if (!choice) {
+      message.reply("Ví dụ: taixiu tai");
+      return;
+    }
+
+    const d1 = Math.floor(Math.random()*6)+1;
+    const d2 = Math.floor(Math.random()*6)+1;
+    const d3 = Math.floor(Math.random()*6)+1;
+
+    const total = d1 + d2 + d3;
+
+    const result = total >= 11 ? "tai" : "xiu";
+
+    if(choice === result){
+
+      money[user] += 50;
+
+      message.reply(`🎉 Bạn thắng!
+
+🎲 ${d1} | ${d2} | ${d3}
+Tổng: ${total}
+
+💰 +50 coin`);
+
+    }else{
+
+      money[user] -= 20;
+
+      message.reply(`💀 Bạn thua!
+
+🎲 ${d1} | ${d2} | ${d3}
+Tổng: ${total}
+
+💸 -20 coin`);
+
+    }
+
+  }
+
+  // MONEY
+  if (msg === "money") {
+    message.reply(`💰 Bạn có ${money[user]} coin`);
+  }
+
+  // DAILY
+  if (msg === "daily") {
+    money[user] += 100;
+    message.reply(`🎁 Bạn nhận 100 coin`);
+  }
+
+});
+
+client.login(process.env.TOKEN);doanso 1-10
 flip
 
 💰 TIỀN
