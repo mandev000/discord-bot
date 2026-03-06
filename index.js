@@ -1,10 +1,6 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 const fs = require("fs");
 
-// =================
-// BOT
-// =================
-
 const client = new Client({
   intents:[
     GatewayIntentBits.Guilds,
@@ -20,11 +16,15 @@ const client = new Client({
 let money = fs.existsSync("money.json") ? JSON.parse(fs.readFileSync("money.json")) : {};
 let bank = fs.existsSync("bank.json") ? JSON.parse(fs.readFileSync("bank.json")) : {};
 let inventory = fs.existsSync("inventory.json") ? JSON.parse(fs.readFileSync("inventory.json")) : {};
+let codes = fs.existsSync("codes.json") ? JSON.parse(fs.readFileSync("codes.json")) : {};
+let daily = fs.existsSync("daily.json") ? JSON.parse(fs.readFileSync("daily.json")) : {};
 
 function save(){
   fs.writeFileSync("money.json",JSON.stringify(money,null,2));
   fs.writeFileSync("bank.json",JSON.stringify(bank,null,2));
   fs.writeFileSync("inventory.json",JSON.stringify(inventory,null,2));
+  fs.writeFileSync("codes.json",JSON.stringify(codes,null,2));
+  fs.writeFileSync("daily.json",JSON.stringify(daily,null,2));
 }
 
 // =================
@@ -41,7 +41,7 @@ const shop = {
 // =================
 
 client.once("ready",()=>{
-  console.log("🤖 BOT CASINO ONLINE");
+  console.log("🤖 CASINO BOT ONLINE");
 });
 
 // =================
@@ -68,7 +68,7 @@ if(msg==="help"){
 
 const embed = new EmbedBuilder()
 .setColor("Gold")
-.setTitle("🎮 MENU BOT")
+.setTitle("🎰 CASINO BOT")
 .setDescription(`
 
 💰 **TIỀN**
@@ -77,6 +77,7 @@ money
 bank
 deposit <số>
 withdraw <số>
+daily
 
 🎲 **GAME**
 
@@ -88,6 +89,14 @@ slot
 
 shop
 buy <item>
+
+🎁 **CODE**
+
+redeem <code>
+
+👑 **ADMIN**
+
+addcode <code> <tiền>
 
 🎒 **KHÁC**
 
@@ -105,7 +114,13 @@ message.reply({embeds:[embed]});
 // =================
 
 if(msg==="money"){
-message.reply(`💰 Bạn có ${money[user]} coin`);
+
+const embed = new EmbedBuilder()
+.setColor("Green")
+.setTitle("💰 TÀI KHOẢN")
+.setDescription(`Bạn có **${money[user]} coin**`);
+
+message.reply({embeds:[embed]});
 }
 
 // =================
@@ -113,7 +128,38 @@ message.reply(`💰 Bạn có ${money[user]} coin`);
 // =================
 
 if(msg==="bank"){
-message.reply(`🏦 Bank: ${bank[user]} coin`);
+
+const embed = new EmbedBuilder()
+.setColor("Blue")
+.setTitle("🏦 BANK")
+.setDescription(`Bank: **${bank[user]} coin**`);
+
+message.reply({embeds:[embed]});
+}
+
+// =================
+// DAILY
+// =================
+
+if(msg==="daily"){
+
+const now = Date.now();
+
+if(daily[user] && now - daily[user] < 86400000)
+return message.reply("⏳ Bạn đã nhận daily hôm nay!");
+
+daily[user] = now;
+
+let reward = 200;
+
+if(inventory[user].includes("vip"))
+reward = 400;
+
+money[user]+=reward;
+
+save();
+
+message.reply(`🎁 Bạn nhận **${reward} coin**`);
 }
 
 // =================
@@ -124,7 +170,7 @@ if(msg.startsWith("deposit")){
 
 const amount = parseInt(args[1]);
 
-if(!amount) return message.reply("❌ deposit <số>");
+if(!amount) return message.reply("deposit <số>");
 
 if(money[user] < amount)
 return message.reply("❌ Không đủ tiền");
@@ -134,7 +180,7 @@ bank[user]+=amount;
 
 save();
 
-message.reply(`🏦 Đã gửi ${amount} coin`);
+message.reply(`🏦 Đã gửi ${amount}`);
 }
 
 // =================
@@ -145,7 +191,7 @@ if(msg.startsWith("withdraw")){
 
 const amount = parseInt(args[1]);
 
-if(!amount) return message.reply("❌ withdraw <số>");
+if(!amount) return message.reply("withdraw <số>");
 
 if(bank[user] < amount)
 return message.reply("❌ Bank không đủ");
@@ -155,7 +201,7 @@ money[user]+=amount;
 
 save();
 
-message.reply(`💰 Rút ${amount} coin`);
+message.reply(`💰 Rút ${amount}`);
 }
 
 // =================
@@ -167,10 +213,15 @@ if(msg==="shop"){
 let text="";
 
 for(let item in shop){
-text+=`${item} - ${shop[item]} coin\n`;
+text+=`**${item}** - ${shop[item]} coin\n`;
 }
 
-message.reply(`🛒 SHOP\n\n${text}`);
+const embed = new EmbedBuilder()
+.setColor("Orange")
+.setTitle("🛒 SHOP")
+.setDescription(text);
+
+message.reply({embeds:[embed]});
 }
 
 // =================
@@ -209,17 +260,10 @@ message.reply(`🎒 Kho đồ\n\n${inventory[user].join("\n")}`);
 }
 
 // =================
-// SLOT ANIMATION
+// SLOT
 // =================
 
 if(msg==="slot"){
-
-let slotMsg = await message.reply("🎰 | ❔ | ❔ | ❔");
-
-setTimeout(()=>slotMsg.edit("🎰 | 🍒 | ❔ | ❔"),700);
-setTimeout(()=>slotMsg.edit("🎰 | 🍒 | 🍋 | ❔"),1400);
-
-setTimeout(()=>{
 
 const icons=["🍒","🍋","🍇","💎","7️⃣"];
 
@@ -238,35 +282,22 @@ money[user]-=30;
 
 save();
 
-slotMsg.edit(`🎰 | ${a} | ${b} | ${c} |\n${win?"🎉 JACKPOT +200":"💸 -30"}`);
-
-},2000);
-
+message.reply(`🎰 ${a} | ${b} | ${c}\n${win?"🎉 JACKPOT +200":"💸 -30"}`);
 }
 
 // =================
-// TÀI XỈU ANIMATION
+// TÀI XỈU
 // =================
 
 if(msg.startsWith("taixiu")){
 
 const choice = args[1];
 
-if(!choice)
-return message.reply("❌ taixiu tai / taixiu xiu");
-
-let roll = await message.reply("🎲 Đang lắc...");
-
-setTimeout(()=>roll.edit("🎲 ⚀ ⚂ ⚄"),800);
-setTimeout(()=>roll.edit("🎲 ⚃ ⚁ ⚅"),1500);
-
-setTimeout(()=>{
-
 const d1=Math.floor(Math.random()*6)+1;
 const d2=Math.floor(Math.random()*6)+1;
 const d3=Math.floor(Math.random()*6)+1;
 
-const total = d1+d2+d3;
+const total=d1+d2+d3;
 
 const result = total>=11 ? "tai":"xiu";
 
@@ -280,18 +311,46 @@ money[user]-=40;
 
 save();
 
-roll.edit(`
-🎲 ${d1} | ${d2} | ${d3}
+message.reply(`🎲 ${d1}|${d2}|${d3}\nKết quả: ${result}\n${win?"🎉 Thắng +80":"💀 Thua -40"}`);
+}
 
-Tổng: ${total}
+// =================
+// REDEEM CODE
+// =================
 
-Kết quả: ${result}
+if(msg.startsWith("redeem")){
 
-${win?"🎉 Thắng +80":"💀 Thua -40"}
-`);
+const code = args[1];
 
-},2500);
+if(!codes[code])
+return message.reply("❌ Code không tồn tại");
 
+money[user]+=codes[code];
+
+delete codes[code];
+
+save();
+
+message.reply(`🎁 Bạn nhận **${codes[code]} coin**`);
+}
+
+// =================
+// ADD CODE (ADMIN)
+// =================
+
+if(msg.startsWith("addcode")){
+
+if(message.author.id !== "ADMIN_ID")
+return;
+
+const code = args[1];
+const reward = parseInt(args[2]);
+
+codes[code] = reward;
+
+save();
+
+message.reply(`✅ Đã tạo code **${code}**`);
 }
 
 // =================
@@ -311,7 +370,6 @@ text+=`#${i+1} <@${u[0]}> - ${u[1]} coin\n`;
 });
 
 message.reply(`🏆 TOP GIÀU\n\n${text}`);
-
 }
 
 // =================
