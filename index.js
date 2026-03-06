@@ -1,383 +1,351 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+const fs = require("fs");
+
+// =================
+// BOT
+// =================
 
 const client = new Client({
-  intents: [
+  intents:[
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent
   ]
 });
 
-let money = {};
-let lastDaily = {};
+// =================
+// LOAD DATA
+// =================
 
-client.once("ready", () => {
-  console.log("🤖 BOT CASINO ONLINE!");
+let money = fs.existsSync("money.json") ? JSON.parse(fs.readFileSync("money.json")) : {};
+let bank = fs.existsSync("bank.json") ? JSON.parse(fs.readFileSync("bank.json")) : {};
+let inventory = fs.existsSync("inventory.json") ? JSON.parse(fs.readFileSync("inventory.json")) : {};
+
+function save(){
+  fs.writeFileSync("money.json",JSON.stringify(money,null,2));
+  fs.writeFileSync("bank.json",JSON.stringify(bank,null,2));
+  fs.writeFileSync("inventory.json",JSON.stringify(inventory,null,2));
+}
+
+// =================
+// SHOP
+// =================
+
+const shop = {
+  pizza:50,
+  burger:80,
+  car:500,
+  vip:1000
+};
+
+// =================
+
+client.once("ready",()=>{
+  console.log("🤖 BOT CASINO ONLINE");
 });
 
-client.on("messageCreate", async (message) => {
+// =================
 
-  if (message.author.bot) return;
+client.on("messageCreate", async(message)=>{
 
-  const msg = message.content.toLowerCase();
-  const user = message.author.id;
+if(message.author.bot) return;
 
-  if (!money[user]) money[user] = 200;
+const msg = message.content.toLowerCase();
+const args = msg.split(" ");
+const user = message.author.id;
 
-  // =================
-  // HELP
-  // =================
+if(!money[user]) money[user] = 200;
+if(!bank[user]) bank[user] = 0;
+if(!inventory[user]) inventory[user] = [];
 
-  if (msg === "help") {
+save();
 
-    const embed = new EmbedBuilder()
-    .setTitle("🎮 MENU GAME BOT")
-    .setColor("Gold")
-    .setDescription(`
-📜 **LỆNH**
+// =================
+// HELP
+// =================
 
-ping
+if(msg==="help"){
+
+const embed = new EmbedBuilder()
+.setColor("Gold")
+.setTitle("🎮 MENU BOT")
+.setDescription(`
+
+💰 **TIỀN**
+
 money
-daily
+bank
+deposit <số>
+withdraw <số>
+
+🎲 **GAME**
+
+taixiu tai
+taixiu xiu
+slot
+
+🛒 **SHOP**
+
+shop
+buy <item>
+
+🎒 **KHÁC**
+
+inventory
 top
-
-🌽 **FUN**
-
 ngocay
 thưởng thơ
-
-🎲 **CASINO**
-
-taixiu
-coin
-dice
-slot
-blackjack
-box
-🎁 **CODE**
-
-code <mã>
 `);
 
-    message.reply({embeds:[embed]});
-  }
+message.reply({embeds:[embed]});
+}
 
-  // =================
-  // NGÔ CAY
-  // =================
+// =================
+// MONEY
+// =================
 
-  if (msg === "ngocay") {
+if(msg==="money"){
+message.reply(`💰 Bạn có ${money[user]} coin`);
+}
 
-    const embed = new EmbedBuilder()
-    .setTitle("🌽 NGÔ CAY")
-    .setImage("https://png.pngtree.com/png-vector/20250918/ourmid/pngtree-hot-steamed-corn-on-cob-served-with-butter-and-masala-seasoning-png-image_17496796.webp")
-    .setColor("Yellow");
+// =================
+// BANK
+// =================
 
-    message.reply({embeds:[embed]});
-  }
+if(msg==="bank"){
+message.reply(`🏦 Bank: ${bank[user]} coin`);
+}
 
-  // =================
-  // THƯỞNG THƠ
-  // =================
+// =================
+// DEPOSIT
+// =================
 
-  if (msg === "thưởng thơ") {
+if(msg.startsWith("deposit")){
 
-    const embed = new EmbedBuilder()
-    .setTitle("📜 THƠ NGÔ CAY")
-    .setColor("Orange")
-    .setDescription(`
-Ngô vàng nướng lửa chiều nay  
-Hương thơm lan gió ngất ngây đồng làng  
-Than hồng đỏ rực bếp than  
-Muối ớt cay nhẹ ngập tràn mê say 🌽
-`);
+const amount = parseInt(args[1]);
 
-    message.reply({embeds:[embed]});
-  }
+if(!amount) return message.reply("❌ deposit <số>");
 
-  // =================
-  // MONEY
-  // =================
+if(money[user] < amount)
+return message.reply("❌ Không đủ tiền");
 
-  if (msg === "money") {
+money[user]-=amount;
+bank[user]+=amount;
 
-    message.reply(`💰 Bạn có **${money[user]} coin**`);
-  }
+save();
 
-  // =================
-  // DAILY
-  // =================
+message.reply(`🏦 Đã gửi ${amount} coin`);
+}
 
-  if (msg === "daily") {
+// =================
+// WITHDRAW
+// =================
 
-    const now = Date.now();
+if(msg.startsWith("withdraw")){
 
-    if(lastDaily[user] && now - lastDaily[user] < 86400000){
-      message.reply("⏳ Bạn đã nhận daily hôm nay!");
-      return;
-    }
+const amount = parseInt(args[1]);
 
-    lastDaily[user] = now;
+if(!amount) return message.reply("❌ withdraw <số>");
 
-    const reward = Math.floor(Math.random()*200)+100;
-    money[user]+=reward;
+if(bank[user] < amount)
+return message.reply("❌ Bank không đủ");
 
-    message.reply(`🎁 Bạn nhận **${reward} coin**`);
-  }
+bank[user]-=amount;
+money[user]+=amount;
+
+save();
+
+message.reply(`💰 Rút ${amount} coin`);
+}
+
+// =================
+// SHOP
+// =================
+
+if(msg==="shop"){
+
+let text="";
+
+for(let item in shop){
+text+=`${item} - ${shop[item]} coin\n`;
+}
+
+message.reply(`🛒 SHOP\n\n${text}`);
+}
+
+// =================
+// BUY
+// =================
+
+if(msg.startsWith("buy")){
+
+const item = args[1];
+
+if(!shop[item])
+return message.reply("❌ Item không tồn tại");
+
+if(money[user] < shop[item])
+return message.reply("❌ Không đủ tiền");
+
+money[user]-=shop[item];
+
+inventory[user].push(item);
+
+save();
+
+message.reply(`🛒 Bạn đã mua **${item}**`);
+}
+
+// =================
+// INVENTORY
+// =================
+
+if(msg==="inventory"){
+
+if(inventory[user].length===0)
+return message.reply("🎒 Kho đồ trống");
+
+message.reply(`🎒 Kho đồ\n\n${inventory[user].join("\n")}`);
+}
+
+// =================
+// SLOT ANIMATION
+// =================
+
+if(msg==="slot"){
+
+let slotMsg = await message.reply("🎰 | ❔ | ❔ | ❔");
+
+setTimeout(()=>slotMsg.edit("🎰 | 🍒 | ❔ | ❔"),700);
+setTimeout(()=>slotMsg.edit("🎰 | 🍒 | 🍋 | ❔"),1400);
+
+setTimeout(()=>{
+
+const icons=["🍒","🍋","🍇","💎","7️⃣"];
+
+const a = icons[Math.floor(Math.random()*icons.length)];
+const b = icons[Math.floor(Math.random()*icons.length)];
+const c = icons[Math.floor(Math.random()*icons.length)];
+
+let win=false;
+
+if(a===b && b===c){
+money[user]+=200;
+win=true;
+}else{
+money[user]-=30;
+}
+
+save();
+
+slotMsg.edit(`🎰 | ${a} | ${b} | ${c} |\n${win?"🎉 JACKPOT +200":"💸 -30"}`);
+
+},2000);
+
+}
 
 // =================
 // TÀI XỈU ANIMATION
 // =================
 
-if (msg.startsWith("taixiu")) {
+if(msg.startsWith("taixiu")){
 
-  const args = msg.split(" ");
-  const choice = args[1];
-  const bet = parseInt(args[2]) || 50;
+const choice = args[1];
 
-  if (!choice || (choice !== "tai" && choice !== "xiu")) {
-    message.reply("Ví dụ: taixiu tai(xiu) sotien");
-    return;
-  }
+if(!choice)
+return message.reply("❌ taixiu tai / taixiu xiu");
 
-  if (money[user] < bet) {
-    message.reply("💸 Bạn không đủ coin!");
-    return;
-  }
+let roll = await message.reply("🎲 Đang lắc...");
 
-  const loading = await message.reply("🎲 Đang lắc xúc xắc...");
+setTimeout(()=>roll.edit("🎲 ⚀ ⚂ ⚄"),800);
+setTimeout(()=>roll.edit("🎲 ⚃ ⚁ ⚅"),1500);
 
-  setTimeout(() => {
+setTimeout(()=>{
 
-    const d1 = Math.floor(Math.random()*6)+1;
-    const d2 = Math.floor(Math.random()*6)+1;
-    const d3 = Math.floor(Math.random()*6)+1;
+const d1=Math.floor(Math.random()*6)+1;
+const d2=Math.floor(Math.random()*6)+1;
+const d3=Math.floor(Math.random()*6)+1;
 
-    const total = d1+d2+d3;
+const total = d1+d2+d3;
 
-    const result = total >= 11 ? "tai":"xiu";
+const result = total>=11 ? "tai":"xiu";
 
-    const win = choice === result;
+let win = choice===result;
 
-    if(win){
-      money[user]+=bet;
-    }else{
-      money[user]-=bet;
-    }
+if(win){
+money[user]+=80;
+}else{
+money[user]-=40;
+}
 
-    const embed = new EmbedBuilder()
-    .setTitle("🎲 KẾT QUẢ TÀI XỈU")
-    .setColor(win?"Green":"Red")
-    .setDescription(`
+save();
+
+roll.edit(`
 🎲 ${d1} | ${d2} | ${d3}
 
-Tổng: **${total}**
+Tổng: ${total}
 
-Kết quả: **${result.toUpperCase()}**
+Kết quả: ${result}
 
-💰 Cược: **${bet}**
-
-${win?`🎉 Thắng +${bet}`:`💀 Thua -${bet}`}
+${win?"🎉 Thắng +80":"💀 Thua -40"}
 `);
 
-    loading.edit({content:"", embeds:[embed]});
+},2500);
 
-  }, 2000);
-
-                  }
-  // =================
-  // COIN
-  // =================
-
-  if (msg === "coin") {
-
-    const flip = Math.random()<0.5;
-
-    if(flip){
-      money[user]+=30;
-    }else{
-      money[user]-=15;
-    }
-
-    message.reply(`🪙 ${flip?"NGỬA":"SẤP"}\n${flip?"💰 +30":"💸 -15"}`);
-  }
-
-  // =================
-  // DICE
-  // =================
-
-  if (msg === "dice") {
-
-    const dice = Math.floor(Math.random()*6)+1;
-
-    if(dice>=4){
-      money[user]+=40;
-    }else{
-      money[user]-=20;
-    }
-
-    message.reply(`🎲 Ra **${dice}**\n${dice>=4?"💰 +40":"💸 -20"}`);
-  }
-
-  // =================
-  // SLOT
-  // =================
-
-  if (msg === "slot") {
-
-    const icons = ["🍒","🍋","🍇","💎","7️⃣"];
-
-    const a = icons[Math.floor(Math.random()*icons.length)];
-    const b = icons[Math.floor(Math.random()*icons.length)];
-    const c = icons[Math.floor(Math.random()*icons.length)];
-
-    if(a===b && b===c){
-      money[user]+=200;
-      message.reply(`🎰 ${a} | ${b} | ${c}\n🎉 JACKPOT +200`);
-    }else{
-      money[user]-=30;
-      message.reply(`🎰 ${a} | ${b} | ${c}\n💸 -30`);
-    }
-  }
-
-  // =================
-  // BLACKJACK
-  // =================
-
-  if (msg === "blackjack") {
-
-    const player = Math.floor(Math.random()*11)+10;
-    const dealer = Math.floor(Math.random()*11)+10;
-
-    let text;
-
-    if(player>21){
-      money[user]-=40;
-      text="💀 Bạn quá 21 thua";
-    }
-    else if(dealer>21 || player>dealer){
-      money[user]+=80;
-      text="🎉 Bạn thắng";
-    }
-    else{
-      money[user]-=40;
-      text="💸 Dealer thắng";
-    }
-
-    message.reply(`🃏 BLACKJACK
-
-Bạn: ${player}
-Dealer: ${dealer}
-
-${text}`);
-  }
-
-  // =================
-  // BOX
-  // =================
-
-  if (msg === "box") {
-
-    const reward = Math.floor(Math.random()*300)-100;
-
-    money[user]+=reward;
-
-    message.reply(`🎁 MỞ HỘP
-
-${reward>0?`💰 +${reward}`:`💸 ${reward}`}`);
-  }
+}
 
 // =================
-// NHẬP CODE
+// TOP
 // =================
 
-if (msg.startsWith("code")) {
+if(msg==="top"){
 
-  const args = msg.split(" ");
-  const code = args[1]?.toUpperCase();
+const sorted = Object.entries(money)
+.sort((a,b)=>b[1]-a[1])
+.slice(0,5);
 
-  if(!code){
-    message.reply("❌ Ví dụ: code FREE100");
-    return;
-  }
+let text="";
 
-  if(!codes[code]){
-    message.reply("❌ Code không tồn tại!");
-    return;
-  }
+sorted.forEach((u,i)=>{
+text+=`#${i+1} <@${u[0]}> - ${u[1]} coin\n`;
+});
 
-  if(!usedCodes[user]) usedCodes[user] = [];
+message.reply(`🏆 TOP GIÀU\n\n${text}`);
 
-  if(usedCodes[user].includes(code)){
-    message.reply("⚠️ Bạn đã dùng code này rồi!");
-    return;
-  }
+}
 
-  const reward = codes[code];
+// =================
+// NGOCAY
+// =================
 
-  money[user] += reward;
+if(msg==="ngocay"){
 
-  usedCodes[user].push(code);
+message.reply({
+content:"🌽 Ngô cay",
+files:["https://i.imgur.com/9Xn6F6C.png"]
+});
 
-  const embed = new EmbedBuilder()
-  .setColor("Purple")
-  .setTitle("🎁 NHẬP CODE THÀNH CÔNG")
-  .setDescription(`
-🔑 Code: **${code}**
+}
 
-💰 Nhận: **${reward} coin**
+// =================
+// THƯỞNG THƠ
+// =================
+
+if(msg==="thưởng thơ"){
+
+message.reply(`
+
+Ngô vàng thơm giữa chiều nay  
+Gió ru đồng bãi ngất ngây hương đồng  
+Nướng lên thơm lửa hồng  
+Chấm thêm muối ớt cay nồng mê say 🌽
+
 `);
 
-  message.reply({embeds:[embed]});
 }
-
-  // =================
-// ADD CODE (ADMIN)
-// =================
-
-if (msg.startsWith("addcode")) {
-
-  if(message.author.id !== "1031563204360409158") return;
-
-  const args = msg.split(" ");
-
-  const code = args[1];
-  const amount = parseInt(args[2]);
-
-  if(!code || !amount){
-    message.reply("Ví dụ: addcode VIP100 100");
-    return;
-  }
-
-  codes[code.toUpperCase()] = amount;
-
-  message.reply(`✅ Đã tạo code **${code}** nhận ${amount} coin`);
-}
-  
-  // =================
-  // TOP
-  // =================
-
-  if (msg === "top") {
-
-    const sorted = Object.entries(money)
-    .sort((a,b)=>b[1]-a[1])
-    .slice(0,5);
-
-    let text="";
-
-    sorted.forEach((u,i)=>{
-      text+=`#${i+1} <@${u[0]}> - ${u[1]} coin\n`;
-    });
-
-    const embed = new EmbedBuilder()
-    .setTitle("🏆 TOP GIÀU NHẤT")
-    .setColor("Gold")
-    .setDescription(text);
-
-    message.reply({embeds:[embed]});
-  }
 
 });
+
+// =================
 
 client.login(process.env.TOKEN);
