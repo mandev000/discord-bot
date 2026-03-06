@@ -54,6 +54,9 @@ dice
 slot
 blackjack
 box
+🎁 **CODE**
+
+code <mã>
 `);
 
     message.reply({embeds:[embed]});
@@ -284,6 +287,73 @@ ${text}`);
 ${reward>0?`💰 +${reward}`:`💸 ${reward}`}`);
   }
 
+// =================
+// NHẬP CODE
+// =================
+
+if (msg.startsWith("code")) {
+
+  const args = msg.split(" ");
+  const code = args[1]?.toUpperCase();
+
+  if(!code){
+    message.reply("❌ Ví dụ: code FREE100");
+    return;
+  }
+
+  if(!codes[code]){
+    message.reply("❌ Code không tồn tại!");
+    return;
+  }
+
+  if(!usedCodes[user]) usedCodes[user] = [];
+
+  if(usedCodes[user].includes(code)){
+    message.reply("⚠️ Bạn đã dùng code này rồi!");
+    return;
+  }
+
+  const reward = codes[code];
+
+  money[user] += reward;
+
+  usedCodes[user].push(code);
+
+  const embed = new EmbedBuilder()
+  .setColor("Purple")
+  .setTitle("🎁 NHẬP CODE THÀNH CÔNG")
+  .setDescription(`
+🔑 Code: **${code}**
+
+💰 Nhận: **${reward} coin**
+`);
+
+  message.reply({embeds:[embed]});
+}
+
+  // =================
+// ADD CODE (ADMIN)
+// =================
+
+if (msg.startsWith("addcode")) {
+
+  if(message.author.id !== "1031563204360409158") return;
+
+  const args = msg.split(" ");
+
+  const code = args[1];
+  const amount = parseInt(args[2]);
+
+  if(!code || !amount){
+    message.reply("Ví dụ: addcode VIP100 100");
+    return;
+  }
+
+  codes[code.toUpperCase()] = amount;
+
+  message.reply(`✅ Đã tạo code **${code}** nhận ${amount} coin`);
+}
+  
   // =================
   // TOP
   // =================
