@@ -9,142 +9,214 @@ const client = new Client({
  ]
 })
 
+// ================= DATA =================
+
 let money = fs.existsSync("money.json") ? JSON.parse(fs.readFileSync("money.json")) : {}
 let bank = fs.existsSync("bank.json") ? JSON.parse(fs.readFileSync("bank.json")) : {}
 let inventory = fs.existsSync("inventory.json") ? JSON.parse(fs.readFileSync("inventory.json")) : {}
-let lastDaily = {}
+let quest = fs.existsSync("quest.json") ? JSON.parse(fs.readFileSync("quest.json")) : {}
+let codes = { free100:100 , vip500:500 }
 
 function save(){
  fs.writeFileSync("money.json",JSON.stringify(money,null,2))
  fs.writeFileSync("bank.json",JSON.stringify(bank,null,2))
  fs.writeFileSync("inventory.json",JSON.stringify(inventory,null,2))
+ fs.writeFileSync("quest.json",JSON.stringify(quest,null,2))
 }
+
+// ================= SHOP =================
 
 const shop = {
- pizza:50,
- burger:80,
- cola:30,
- sword:200,
- shield:180,
- car:500,
- phone:250,
- laptop:800,
- vip:1000,
- crate:150
+
+pizza:50,
+burger:80,
+cola:30,
+water:20,
+bread:25,
+
+sword:200,
+shield:180,
+gun:400,
+
+phone:250,
+laptop:800,
+pc:1200,
+
+car:500,
+bike:300,
+
+vip:1000,
+
+crate:150,
+supercrate:500,
+
+ring:150,
+watch:200,
+diamond:600
+
 }
 
+// ================= READY =================
+
 client.once("ready",()=>{
- console.log("BOT CASINO ONLINE")
+ console.log("🔥 CASINO BOT ONLINE")
 })
+
+// ================= BOT =================
 
 client.on("messageCreate", async message=>{
 
- if(message.author.bot) return
+if(message.author.bot) return
 
- const msg = message.content.toLowerCase()
- const args = msg.split(" ")
- const user = message.author.id
+const msg = message.content.toLowerCase()
+const args = msg.split(" ")
+const user = message.author.id
 
- if(!money[user]) money[user]=200
- if(!bank[user]) bank[user]=0
- if(!inventory[user]) inventory[user]=[]
+if(!money[user]) money[user]=500
+if(!bank[user]) bank[user]=0
+if(!inventory[user]) inventory[user]=[]
+if(!quest[user]) quest[user]={daily:false}
 
- save()
+save()
 
-// HELP
+// ================= HELP =================
 
 if(msg==="help"){
 
 const embed = new EmbedBuilder()
+
 .setColor("Gold")
-.setTitle("🎮 CASINO BOT")
+.setTitle("🎮 CASINO BOT MENU")
+
 .setDescription(`
 
-💰 MONEY
+💰 **TIỀN**
 money
 daily
+redeem <code>
 
-🏦 BANK
+🏦 **BANK**
 bank
 deposit <số>
 withdraw <số>
 
-🎰 GAME
+🎰 **GAME**
 slot
 taixiu tai <tiền>
 taixiu xiu <tiền>
+xocdia <tiền>
 
-🎁 ITEM
+🎁 **ITEM**
 shop
 buy <item>
 inventory
+opencrate
 
-🎁 FUN
+🎯 **NHIỆM VỤ**
+quest
+
+🏆 **KHÁC**
+top
 ngocay
 thưởng thơ
-
-🏆 KHÁC
-top
 `)
 
 message.reply({embeds:[embed]})
 
 }
 
-// MONEY
+// ================= MONEY =================
 
 if(msg==="money"){
-message.reply(`💰 ${money[user]} coin`)
+
+message.reply(`💰 Bạn có **${money[user]} coin**`)
+
 }
 
-// DAILY
+// ================= DAILY =================
 
 if(msg==="daily"){
 
-const now = Date.now()
+if(quest[user].daily)
+return message.reply("⏳ Hôm nay đã nhận")
 
-if(lastDaily[user] && now-lastDaily[user]<86400000)
-return message.reply("⏳ Đã nhận hôm nay")
-
-lastDaily[user]=now
-
-const reward = Math.floor(Math.random()*200)+100
+let reward = Math.floor(Math.random()*300)+200
 
 money[user]+=reward
+quest[user].daily=true
+
 save()
 
-message.reply(`🎁 Daily +${reward}`)
+message.reply(`🎁 Daily nhận **${reward} coin**`)
+
 }
 
-// BANK
+// ================= QUEST =================
+
+if(msg==="quest"){
+
+message.reply(`
+🎯 NHIỆM VỤ
+
+daily → nhận coin mỗi ngày
+slot → chơi slot
+taixiu → chơi tài xỉu
+
+Hoàn thành sẽ nhận thưởng
+`)
+
+}
+
+// ================= REDEEM =================
+
+if(msg.startsWith("redeem")){
+
+let code = args[1]
+
+if(!codes[code])
+return message.reply("❌ Code sai")
+
+money[user]+=codes[code]
+
+delete codes[code]
+
+save()
+
+message.reply(`🎁 Nhận ${codes[code]} coin`)
+
+}
+
+// ================= BANK =================
 
 if(msg==="bank"){
-message.reply(`🏦 Bank: ${bank[user]}`)
+
+message.reply(`🏦 Bank: **${bank[user]} coin**`)
+
 }
 
-// DEPOSIT
+// ================= DEPOSIT =================
 
 if(msg.startsWith("deposit")){
 
-const amount = parseInt(args[1])
+let amount = parseInt(args[1])
 
 if(money[user]<amount)
-return message.reply("❌ Không đủ tiền")
+return message.reply("❌ Không đủ")
 
 money[user]-=amount
 bank[user]+=amount
 
 save()
 
-message.reply(`🏦 Đã gửi ${amount}`)
+message.reply(`🏦 Gửi **${amount} coin**`)
 
 }
 
-// WITHDRAW
+// ================= WITHDRAW =================
 
 if(msg.startsWith("withdraw")){
 
-const amount = parseInt(args[1])
+let amount = parseInt(args[1])
 
 if(bank[user]<amount)
 return message.reply("❌ Bank không đủ")
@@ -154,29 +226,29 @@ money[user]+=amount
 
 save()
 
-message.reply(`💰 Rút ${amount}`)
+message.reply(`💰 Rút **${amount} coin**`)
 
 }
 
-// SHOP
+// ================= SHOP =================
 
 if(msg==="shop"){
 
 let text=""
 
 for(let item in shop){
- text+=`${item} - ${shop[item]} coin\n`
+text+=`${item} — ${shop[item]} coin\n`
 }
 
 message.reply(`🛒 SHOP\n\n${text}`)
 
 }
 
-// BUY
+// ================= BUY =================
 
 if(msg.startsWith("buy")){
 
-const item = args[1]
+let item = args[1]
 
 if(!shop[item])
 return message.reply("❌ Item không tồn tại")
@@ -190,22 +262,41 @@ inventory[user].push(item)
 
 save()
 
-message.reply(`🛒 Mua ${item}`)
+message.reply(`🛒 Đã mua **${item}**`)
 
 }
 
-// INVENTORY
+// ================= INVENTORY =================
 
 if(msg==="inventory"){
 
 if(inventory[user].length===0)
 return message.reply("🎒 Kho đồ trống")
 
-message.reply(`🎒\n${inventory[user].join("\n")}`)
+message.reply(`🎒 INVENTORY\n\n${inventory[user].join("\n")}`)
 
 }
 
-// SLOT
+// ================= CRATE =================
+
+if(msg==="opencrate"){
+
+if(!inventory[user].includes("crate"))
+return message.reply("❌ Bạn không có crate")
+
+inventory[user].splice(inventory[user].indexOf("crate"),1)
+
+let reward = Math.floor(Math.random()*500)+100
+
+money[user]+=reward
+
+save()
+
+message.reply(`🎁 Mở crate nhận **${reward} coin**`)
+
+}
+
+// ================= SLOT =================
 
 if(msg==="slot"){
 
@@ -225,31 +316,31 @@ const c=icons[Math.floor(Math.random()*icons.length)]
 let win=false
 
 if(a===b && b===c){
- money[user]+=200
+ money[user]+=300
  win=true
 }else{
- money[user]-=30
+ money[user]-=50
 }
 
 save()
 
-m.edit(`🎰 ${a} | ${b} | ${c}\n${win?"🎉 JACKPOT":"💸 -30"}`)
+m.edit(`🎰 ${a} | ${b} | ${c}\n${win?"🎉 JACKPOT +300":"💸 -50"}`)
 
 },2000)
 
 }
 
-// TÀI XỈU
+// ================= TÀI XỈU =================
 
 if(msg.startsWith("taixiu")){
 
-const bet = parseInt(args[2])
-const choice = args[1]
+const bet=parseInt(args[2])
+const choice=args[1]
 
 if(money[user]<bet)
 return message.reply("❌ Không đủ tiền")
 
-let roll = await message.reply("🎲 Đang lắc...")
+let roll = await message.reply("🎲 Đang lắc xúc xắc...")
 
 setTimeout(()=>{
 
@@ -276,7 +367,7 @@ roll.edit(`
 
 Tổng: ${total}
 
-Kết quả: ${result}
+Kết quả: **${result}**
 
 ${win?`🎉 +${bet}`:`💀 -${bet}`}
 `)
@@ -285,7 +376,55 @@ ${win?`🎉 +${bet}`:`💀 -${bet}`}
 
 }
 
-// TOP
+// ================= XÓC ĐĨA =================
+
+if(msg.startsWith("xocdia")){
+
+const bet=parseInt(args[1])
+
+if(money[user]<bet)
+return message.reply("❌ Không đủ tiền")
+
+let roll = await message.reply("🥣 Đang xóc...")
+
+setTimeout(()=>{
+
+let reds=0
+
+for(let i=0;i<4;i++){
+ if(Math.random()<0.5) reds++
+}
+
+let white = 4-reds
+
+let result = reds>white?"đỏ":"trắng"
+
+let win = Math.random()<0.5
+
+if(win){
+ money[user]+=bet
+}else{
+ money[user]-=bet
+}
+
+save()
+
+roll.edit(`
+
+🎯 KẾT QUẢ XÓC ĐĨA
+
+🔴 ${reds} đỏ
+⚪ ${white} trắng
+
+${win?`🎉 Thắng +${bet}`:`💀 Thua -${bet}`}
+
+`)
+
+},2500)
+
+}
+
+// ================= TOP =================
 
 if(msg==="top"){
 
@@ -296,31 +435,31 @@ const sorted = Object.entries(money)
 let text=""
 
 sorted.forEach((u,i)=>{
-text+=`#${i+1} <@${u[0]}> - ${u[1]}\n`
+text+=`#${i+1} <@${u[0]}> - ${u[1]} coin\n`
 })
 
-message.reply(`🏆 TOP\n\n${text}`)
+message.reply(`🏆 TOP GIÀU NHẤT\n\n${text}`)
 
 }
 
-// NGOCAY
+// ================= NGOCAY =================
 
 if(msg==="ngocay"){
 
 message.reply({
-content:"🌽 Ngô cay",
+content:"🌽 Ngô cay siêu ngon",
 files:["https://i.imgur.com/9Xn6F6C.png"]
 })
 
 }
 
-// THƯỞNG THƠ
+// ================= THƯỞNG THƠ =================
 
 if(msg==="thưởng thơ"){
 
 message.reply(`
 
-Ngô vàng thơm giữa chiều nay  
+🌽 Ngô vàng thơm giữa chiều nay  
 Gió ru đồng bãi ngất ngây hương đồng  
 Nướng lên thơm lửa hồng  
 Chấm thêm muối ớt cay nồng mê say 🌽
