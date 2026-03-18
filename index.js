@@ -1,473 +1,171 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js")
-const fs = require("fs")
+// 🚀 GOD MODE CASINO BOT - FULL SYSTEM 🚀 // Features: economy, bank, xp/level, shop, crate, supercrate, trade, marketplace, vip, cooldown, animation, anti cheat
 
-const client = new Client({
- intents:[
-  GatewayIntentBits.Guilds,
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.MessageContent
- ]
-})
+const { Client, GatewayIntentBits } = require("discord.js") const fs = require("fs")
 
-// ================= DATA =================
+const client = new Client({ intents:[ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent ] })
 
-let money = fs.existsSync("money.json") ? JSON.parse(fs.readFileSync("money.json")) : {}
-let bank = fs.existsSync("bank.json") ? JSON.parse(fs.readFileSync("bank.json")) : {}
-let inventory = fs.existsSync("inventory.json") ? JSON.parse(fs.readFileSync("inventory.json")) : {}
-let quest = fs.existsSync("quest.json") ? JSON.parse(fs.readFileSync("quest.json")) : {}
-let codes = { free100:100 , vip500:500 }
+// ================= LOAD =================
 
-function save(){
- fs.writeFileSync("money.json",JSON.stringify(money,null,2))
- fs.writeFileSync("bank.json",JSON.stringify(bank,null,2))
- fs.writeFileSync("inventory.json",JSON.stringify(inventory,null,2))
- fs.writeFileSync("quest.json",JSON.stringify(quest,null,2))
-}
+function load(file){ return fs.existsSync(file)?JSON.parse(fs.readFileSync(file)):{} }
 
-// ================= SHOP =================
+let money=load("money.json") let bank=load("bank.json") let inventory=load("inventory.json") let xp=load("xp.json") let market=load("market.json")
 
-const shop = {
+function save(){ fs.writeFileSync("money.json",JSON.stringify(money,null,2)) fs.writeFileSync("bank.json",JSON.stringify(bank,null,2)) fs.writeFileSync("inventory.json",JSON.stringify(inventory,null,2)) fs.writeFileSync("xp.json",JSON.stringify(xp,null,2)) fs.writeFileSync("market.json",JSON.stringify(market,null,2)) }
 
-pizza:50,
-burger:80,
-cola:30,
-water:20,
-bread:25,
+// ================= CONFIG =================
 
-sword:200,
-shield:180,
-gun:400,
+const shop={crate:150,supercrate:500,vip:2000} const cooldown=new Set()
 
-phone:250,
-laptop:800,
-pc:1200,
+client.once("ready",()=>console.log("🔥 GOD MODE ONLINE"))
 
-car:500,
-bike:300,
+client.on("messageCreate",async message=>{ if(message.author.bot) return
 
-vip:1000,
+const msg=message.content.toLowerCase() const args=msg.split(" ") const user=message.author.id
 
-crate:150,
-supercrate:500,
+// cooldown if(cooldown.has(user)) return cooldown.add(user) setTimeout(()=>cooldown.delete(user),1500)
 
-ring:150,
-watch:200,
-diamond:600
+// init if(!money[user]) money[user]=500 if(!bank[user]) bank[user]=0 if(!inventory[user]) inventory[user]=[] if(!xp[user]) xp[user]={xp:0,level:1}
 
-}
+// ================= XP =================
 
-// ================= READY =================
+function addXP(u,a){ xp[u].xp+=a if(xp[u].xp>=xp[u].level*100){ xp[u].xp=0 xp[u].level++ message.reply(🎉 LEVEL UP ${xp[u].level}) } }
 
-client.once("ready",()=>{
- console.log("🔥 CASINO BOT ONLINE")
-})
+// ================= BASIC =================
 
-// ================= BOT =================
+if(msg==="help"){ message.reply(💎 GOD MODE\nmoney bank level\nslot taixiu xocdia\nshop buy inventory\nopencrate opensuper\ndeposit withdraw\ntrade market sell buyitem\ntop) }
 
-client.on("messageCreate", async message=>{
-
-if(message.author.bot) return
-
-const msg = message.content.toLowerCase()
-const args = msg.split(" ")
-const user = message.author.id
-
-if(!money[user]) money[user]=500
-if(!bank[user]) bank[user]=0
-if(!inventory[user]) inventory[user]=[]
-if(!quest[user]) quest[user]={daily:false}
-
-save()
-
-// ================= HELP =================
-
-if(msg==="help"){
-
-const embed = new EmbedBuilder()
-
-.setColor("Gold")
-.setTitle("🎮 CASINO BOT MENU")
-
-.setDescription(`
-
-💰 **TIỀN**
-money
-daily
-redeem <code>
-
-🏦 **BANK**
-bank
-deposit <số>
-withdraw <số>
-
-🎰 **GAME**
-slot
-taixiu tai <tiền>
-taixiu xiu <tiền>
-xocdia <tiền>
-
-🎁 **ITEM**
-shop
-buy <item>
-inventory
-opencrate
-
-🎯 **NHIỆM VỤ**
-quest
-
-🏆 **KHÁC**
-top
-ngocay
-thưởng thơ
-`)
-
-message.reply({embeds:[embed]})
-
-}
-
-// ================= MONEY =================
-
-if(msg==="money"){
-
-message.reply(`💰 Bạn có **${money[user]} coin**`)
-
-}
-
-// ================= DAILY =================
-
-if(msg==="daily"){
-
-if(quest[user].daily)
-return message.reply("⏳ Hôm nay đã nhận")
-
-let reward = Math.floor(Math.random()*300)+200
-
-money[user]+=reward
-quest[user].daily=true
-
-save()
-
-message.reply(`🎁 Daily nhận **${reward} coin**`)
-
-}
-
-// ================= QUEST =================
-
-if(msg==="quest"){
-
-message.reply(`
-🎯 NHIỆM VỤ
-
-daily → nhận coin mỗi ngày
-slot → chơi slot
-taixiu → chơi tài xỉu
-
-Hoàn thành sẽ nhận thưởng
-`)
-
-}
-
-// ================= REDEEM =================
-
-if(msg.startsWith("redeem")){
-
-let code = args[1]
-
-if(!codes[code])
-return message.reply("❌ Code sai")
-
-money[user]+=codes[code]
-
-delete codes[code]
-
-save()
-
-message.reply(`🎁 Nhận ${codes[code]} coin`)
-
-}
+if(msg==="money") message.reply(💰 ${money[user]}) if(msg==="level") message.reply(⭐ ${xp[user].level} (${xp[user].xp})) if(msg==="bank") message.reply(🏦 ${bank[user]})
 
 // ================= BANK =================
 
-if(msg==="bank"){
+if(msg.startsWith("deposit")){ let a=parseInt(args[1]) if(isNaN(a)||a<=0||money[user]<a) return money[user]-=a; bank[user]+=a; save() message.reply(🏦 +${a}) }
 
-message.reply(`🏦 Bank: **${bank[user]} coin**`)
-
-}
-
-// ================= DEPOSIT =================
-
-if(msg.startsWith("deposit")){
-
-let amount = parseInt(args[1])
-
-if(money[user]<amount)
-return message.reply("❌ Không đủ")
-
-money[user]-=amount
-bank[user]+=amount
-
-save()
-
-message.reply(`🏦 Gửi **${amount} coin**`)
-
-}
-
-// ================= WITHDRAW =================
-
-if(msg.startsWith("withdraw")){
-
-let amount = parseInt(args[1])
-
-if(bank[user]<amount)
-return message.reply("❌ Bank không đủ")
-
-bank[user]-=amount
-money[user]+=amount
-
-save()
-
-message.reply(`💰 Rút **${amount} coin**`)
-
-}
+if(msg.startsWith("withdraw")){ let a=parseInt(args[1]) if(isNaN(a)||a<=0||bank[user]<a) return bank[user]-=a; money[user]+=a; save() message.reply(💰 +${a}) }
 
 // ================= SHOP =================
 
-if(msg==="shop"){
+if(msg==="shop") message.reply(crate 150\nsupercrate 500\nvip 2000)
 
-let text=""
-
-for(let item in shop){
-text+=`${item} — ${shop[item]} coin\n`
-}
-
-message.reply(`🛒 SHOP\n\n${text}`)
-
-}
-
-// ================= BUY =================
-
-if(msg.startsWith("buy")){
-
-let item = args[1]
-
-if(!shop[item])
-return message.reply("❌ Item không tồn tại")
-
-if(money[user]<shop[item])
-return message.reply("❌ Không đủ tiền")
-
-money[user]-=shop[item]
-
-inventory[user].push(item)
-
-save()
-
-message.reply(`🛒 Đã mua **${item}**`)
-
-}
+if(msg.startsWith("buy")){ let item=args[1] if(!shop[item]||money[user]<shop[item]) return money[user]-=shop[item] inventory[user].push(item) addXP(user,5) save() message.reply(🛒 ${item}) }
 
 // ================= INVENTORY =================
 
-if(msg==="inventory"){
-
-if(inventory[user].length===0)
-return message.reply("🎒 Kho đồ trống")
-
-message.reply(`🎒 INVENTORY\n\n${inventory[user].join("\n")}`)
-
-}
+if(msg==="inventory") message.reply(inventory[user].join(", ")||"trống")
 
 // ================= CRATE =================
 
-if(msg==="opencrate"){
+if(msg==="opencrate"){ if(!inventory[user].includes("crate")) return inventory[user].splice(inventory[user].indexOf("crate"),1) let r=Math.floor(Math.random()*300)+100 money[user]+=r; addXP(user,10); save() message.reply(🎁 ${r}) }
 
-if(!inventory[user].includes("crate"))
-return message.reply("❌ Bạn không có crate")
-
-inventory[user].splice(inventory[user].indexOf("crate"),1)
-
-let reward = Math.floor(Math.random()*500)+100
-
-money[user]+=reward
-
-save()
-
-message.reply(`🎁 Mở crate nhận **${reward} coin**`)
-
-}
+if(msg==="opensuper"){ if(!inventory[user].includes("supercrate")) return inventory[user].splice(inventory[user].indexOf("supercrate"),1) let r=Math.floor(Math.random()*1000)+500 money[user]+=r; addXP(user,20); save() message.reply(💎 ${r}) }
 
 // ================= SLOT =================
 
-if(msg==="slot"){
+if(msg==="slot"){ const icons=["🍒","🍋","💎","7️⃣"] let m=await message.reply("🎰 spinning...")
 
-let m = await message.reply("🎰 | ❔ | ❔ | ❔")
+let spin=setInterval(()=>{ m.edit(🎰 ${icons.sort(()=>Math.random()-0.5).slice(0,3).join("|")}) },120)
 
-setTimeout(()=>m.edit("🎰 | 🍒 | ❔ | ❔"),700)
-setTimeout(()=>m.edit("🎰 | 🍒 | 🍋 | ❔"),1400)
+setTimeout(()=>{ clearInterval(spin) let [a,b,c]=icons.sort(()=>Math.random()-0.5) let win=a===b&&b===c if(win){ money[user]+=500; addXP(user,15) } else money[user]-=50 save() m.edit(${a}|${b}|${c} ${win?"🎉":"💀"}) },2000) }
 
-setTimeout(()=>{
+// ================= TAIXIU =================
 
-const icons=["🍒","🍋","🍇","💎","7️⃣"]
+if(msg.startsWith("taixiu")){ let bet=parseInt(args[2]) let choice=args[1] if(isNaN(bet)||money[user]<bet) return
 
-const a=icons[Math.floor(Math.random()*icons.length)]
-const b=icons[Math.floor(Math.random()*icons.length)]
-const c=icons[Math.floor(Math.random()*icons.length)]
+let total=Math.floor(Math.random()*18)+3 let result=total>=11?"tai":"xiu"
 
-let win=false
+if(choice===result){ money[user]+=bet; addXP(user,10) } else money[user]-=bet
 
-if(a===b && b===c){
- money[user]+=300
- win=true
-}else{
- money[user]-=50
-}
+save() message.reply(${total} => ${result}) }
 
-save()
+// ================= XOCDIA =================
 
-m.edit(`🎰 ${a} | ${b} | ${c}\n${win?"🎉 JACKPOT +300":"💸 -50"}`)
+if(msg.startsWith("xocdia")){ let bet=parseInt(args[1]) if(isNaN(bet)||money[user]<bet) return
 
-},2000)
+let win=Math.random()<0.5 if(win){ money[user]+=bet; addXP(user,10) } else money[user]-=bet
 
-}
+save() message.reply(win?"🎉":"💀") }
 
-// ================= TÀI XỈU =================
+// ================= TRADE =================
 
-if(msg.startsWith("taixiu")){
+if(msg.startsWith("trade")){ let target=message.mentions.users.first() let item=args[2] if(!target||!inventory[user].includes(item)) return
 
-const bet=parseInt(args[2])
-const choice=args[1]
+inventory[user].splice(inventory[user].indexOf(item),1) if(!inventory[target.id]) inventory[target.id]=[] inventory[target.id].push(item)
 
-if(money[user]<bet)
-return message.reply("❌ Không đủ tiền")
+save() message.reply(🔁 traded ${item}) }
 
-let roll = await message.reply("🎲 Đang lắc xúc xắc...")
+// ================= MARKET =================
 
-setTimeout(()=>{
+if(msg.startsWith("sell")){ let item=args[1] let price=parseInt(args[2]) if(!inventory[user].includes(item)||isNaN(price)) return
 
-const d1=Math.floor(Math.random()*6)+1
-const d2=Math.floor(Math.random()*6)+1
-const d3=Math.floor(Math.random()*6)+1
+inventory[user].splice(inventory[user].indexOf(item),1) if(!market[item]) market[item]=[] market[item].push({seller:user,price})
 
-const total=d1+d2+d3
+save() message.reply(📦 listed ${item} ${price}) }
 
-const result = total>=11?"tai":"xiu"
+if(msg==="market"){ let text="" for(let item in market){ market[item].forEach((m,i)=>{ text+=${item} - ${m.price} (<@${m.seller}>)\n }) } message.reply(text||"trống") }
 
-let win = choice===result
+if(msg.startsWith("buyitem")){ let item=args[1] if(!market[item]||market[item].length===0) return
 
-if(win){
- money[user]+=bet
-}else{
- money[user]-=bet
-}
+let data=market[item].shift() if(money[user]<data.price) return
 
-save()
+money[user]-=data.price if(!inventory[user]) inventory[user]=[] inventory[user].push(item)
 
-roll.edit(`
-🎲 ${d1} | ${d2} | ${d3}
+money[data.seller]+=data.price
 
-Tổng: ${total}
-
-Kết quả: **${result}**
-
-${win?`🎉 +${bet}`:`💀 -${bet}`}
-`)
-
-},2000)
-
-}
-
-// ================= XÓC ĐĨA =================
-
-if(msg.startsWith("xocdia")){
-
-const bet=parseInt(args[1])
-
-if(money[user]<bet)
-return message.reply("❌ Không đủ tiền")
-
-let roll = await message.reply("🥣 Đang xóc...")
-
-setTimeout(()=>{
-
-let reds=0
-
-for(let i=0;i<4;i++){
- if(Math.random()<0.5) reds++
-}
-
-let white = 4-reds
-
-let result = reds>white?"đỏ":"trắng"
-
-let win = Math.random()<0.5
-
-if(win){
- money[user]+=bet
-}else{
- money[user]-=bet
-}
-
-save()
-
-roll.edit(`
-
-🎯 KẾT QUẢ XÓC ĐĨA
-
-🔴 ${reds} đỏ
-⚪ ${white} trắng
-
-${win?`🎉 Thắng +${bet}`:`💀 Thua -${bet}`}
-
-`)
-
-},2500)
-
-}
+save() message.reply(🛒 bought ${item}) }
 
 // ================= TOP =================
 
-if(msg==="top"){
+if(msg==="top"){ let top=Object.entries(money).sort((a,b)=>b[1]-a[1]).slice(0,5) message.reply(top.map((u,i)=>#${i+1} <@${u[0]}> ${u[1]}).join("\n")) }
 
-const sorted = Object.entries(money)
-.sort((a,b)=>b[1]-a[1])
-.slice(0,5)
+// ================= BUTTON UI =================
 
-let text=""
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
 
-sorted.forEach((u,i)=>{
-text+=`#${i+1} <@${u[0]}> - ${u[1]} coin\n`
-})
+if(msg==="menu"){
 
-message.reply(`🏆 TOP GIÀU NHẤT\n\n${text}`)
+const row = new ActionRowBuilder().addComponents( new ButtonBuilder().setCustomId("slot").setLabel("🎰 Slot").setStyle(ButtonStyle.Primary), new ButtonBuilder().setCustomId("taixiu").setLabel("🎲 Tài Xỉu").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId("xocdia").setLabel("🥣 Xóc Đĩa").setStyle(ButtonStyle.Danger) )
 
-}
+message.reply({content:"🎮 MENU GAME",components:[row]}) }
 
-// ================= NGOCAY =================
+client.on("interactionCreate", async interaction=>{ if(!interaction.isButton()) return
 
-if(msg==="ngocay"){
+const user = interaction.user.id
 
-message.reply({
-content:"🌽 Ngô cay siêu ngon",
-files:["https://i.imgur.com/9Xn6F6C.png"]
-})
+if(!money[user]) money[user]=500
 
-}
+// SLOT BUTTON if(interaction.customId==="slot"){ const icons=["🍒","🍋","💎","7️⃣"] let spin=setInterval(()=>{ interaction.update({content:🎰 ${icons.sort(()=>Math.random()-0.5).slice(0,3).join("|")},components:[]}) },120)
 
-// ================= THƯỞNG THƠ =================
+setTimeout(()=>{ clearInterval(spin) let [a,b,c]=icons.sort(()=>Math.random()-0.5) let win=a===b&&b===c
 
-if(msg==="thưởng thơ"){
+if(win){ money[user]+=500 } else money[user]-=50
 
-message.reply(`
+save()
 
-🌽 Ngô vàng thơm giữa chiều nay  
-Gió ru đồng bãi ngất ngây hương đồng  
-Nướng lên thơm lửa hồng  
-Chấm thêm muối ớt cay nồng mê say 🌽
+interaction.editReply({content:${a}|${b}|${c} ${win?"🎉":"💀"},components:[]}) },2000) }
 
-`)
+// TAIXIU BUTTON (random) if(interaction.customId==="taixiu"){ let total=Math.floor(Math.random()*18)+3 let result=total>=11?"TÀI":"XỈU"
 
-}
+interaction.update({content:🎲 ${total} => ${result},components:[]}) }
+
+// XOCDIA BUTTON if(interaction.customId==="xocdia"){ let win=Math.random()<0.5 interaction.update({content:win?"🥣 🎉 WIN":"🥣 💀 LOSE",components:[]}) }
 
 })
+
+})
+
+// ================= FUN (NGÔ CAY + THƯỞNG THƠ) =================
+
+// Text command if(msg==="ngocay"){ message.reply({ content:"🌽 Ngô cay siêu ngon 🔥", files:["https://i.imgur.com/9Xn6F6C.png"] }) }
+
+if(msg==="thưởng thơ" || msg==="thuong tho"){ message.reply(🌽 Ngô vàng thơm giữa chiều nay Gió ru đồng bãi ngất ngây hương đồng Nướng lên thơm lửa hồng Chấm thêm muối ớt cay nồng mê say 🌽) }
+
+// Button UI for fun const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js")
+
+if(msg==="menufun"){ const row = new ActionRowBuilder().addComponents( new ButtonBuilder().setCustomId("ngocay_btn").setLabel("🌽 Ngô cay").setStyle(ButtonStyle.Success), new ButtonBuilder().setCustomId("tho_btn").setLabel("📜 Thưởng thơ").setStyle(ButtonStyle.Primary) ) message.reply({content:"🎉 FUN MENU",components:[row]}) }
+
+client.on("interactionCreate", async interaction=>{ if(!interaction.isButton()) return
+
+if(interaction.customId==="ngocay_btn"){ return interaction.reply({ content:"🌽 Ngô cay siêu ngon 🔥", files:["https://i.imgur.com/9Xn6F6C.png"], ephemeral:false }) }
+
+if(interaction.customId==="tho_btn"){ return interaction.reply({ content:🌽 Ngô vàng thơm giữa chiều nay Gió ru đồng bãi ngất ngây hương đồng Nướng lên thơm lửa hồng Chấm thêm muối ớt cay nồng mê say 🌽, ephemeral:false }) } })
 
 client.login(process.env.TOKEN)
