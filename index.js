@@ -1,6 +1,7 @@
 // 🚀 GOD MODE CASINO BOT - FULL SYSTEM 🚀 // Features: economy, bank, xp/level, shop, crate, supercrate, trade, marketplace, vip, cooldown, animation, anti cheat
 
-const { Client, GatewayIntentBits } = require("discord.js") const fs = require("fs")
+const { Client, GatewayIntentBits } = require("discord.js") 
+const fs = require("fs")
 
 const client = new Client({ intents:[ GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent ] })
 
