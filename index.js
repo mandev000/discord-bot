@@ -977,4 +977,4 @@ client.on("interactionCreate", async i=>{
 
 })
 
-client.login(process.env.TOKEN)
+client.login("YOUR_TOKEN")
