@@ -1,307 +1,236 @@
-const {
- Client,
- GatewayIntentBits,
- ActionRowBuilder,
- ButtonBuilder,
- ButtonStyle,
- EmbedBuilder
-} = require("discord.js")
+# Bot Discord Fake Casino - Full Animation Đẹp | Tài Xỉu + Xóc Đĩa Rigged
+# Fake vui vẻ, tiền ảo, animation GIF luxury
 
-const fs = require("fs")
+import discord
+from discord import app_commands
+from discord.ext import commands
+import random
+import asyncio
+import json
+from datetime import datetime
+import os
 
-const client = new Client({
- intents:[
-  GatewayIntentBits.Guilds,
-  GatewayIntentBits.GuildMessages,
-  GatewayIntentBits.MessageContent
- ]
-})
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix='!', intents=intents)
 
-// ===== LOAD =====
-function load(f){
- return fs.existsSync(f)?JSON.parse(fs.readFileSync(f)):{}
+# File data
+DATA_FILE = "casino_data.json"
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, 'r') as f:
+            return json.load(f)
+    return {"users": {}, "codes": {}}
+
+def save_data(data):
+    with open(DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+data = load_data()
+
+# Config
+DAILY_AMOUNT = 500
+COOLDOWN = 86400  # 24h
+RIGGED_MODE = False
+RIGGED_WIN_RATE = 0.70  # 70% nhà cái thắng khi rigged
+
+SHOP_ITEMS = {
+    "vip_bronze": {"price": 2000, "desc": "VIP Bronze fake"},
+    "vip_silver": {"price": 5000, "desc": "VIP Silver fake"},
+    "vip_gold": {"price": 10000, "desc": "VIP Gold fake"}
 }
 
-let money = load("money.json")
-let history = load("history.json")
-let daily = load("daily.json")
-let code = load("code.json")
-let vip = load("vip.json")
-
-function save(){
- fs.writeFileSync("money.json",JSON.stringify(money,null,2))
- fs.writeFileSync("history.json",JSON.stringify(history,null,2))
- fs.writeFileSync("daily.json",JSON.stringify(daily,null,2))
- fs.writeFileSync("code.json",JSON.stringify(code,null,2))
- fs.writeFileSync("vip.json",JSON.stringify(vip,null,2))
-}
-
-// ===== SYSTEM =====
-function getMoney(id){
- if(!money[id]) money[id]=1000
- return money[id]
-}
-
-function addMoney(id,amt){
- money[id]=Math.max(0,getMoney(id)+amt)
- save()
-}
-
-function addHistory(id,text){
- if(!history[id]) history[id]=[]
- history[id].push(text)
- if(history[id].length>15) history[id].shift()
- save()
-}
-
-function rand(min,max){
- return Math.floor(Math.random()*(max-min+1))+min
-}
-
-// ===== EVENT X2 =====
-function isEvent(){
- let h = new Date().getHours()
- return h>=20 && h<=21
-}
-
-// ===== BLACKJACK =====
-let bj = {}
-
-function sum(a){ return a.reduce((x,y)=>x+y,0) }
-function draw(){ return rand(1,11) }
-
-// ===== READY =====
-client.once("ready",()=>console.log("🔥 CASINO FIXED ONLINE"))
-
-// ===== MESSAGE =====
-client.on("messageCreate", async (msg)=>{
- if(msg.author.bot) return
-
- const id = msg.author.id
- const text = msg.content.toLowerCase()
- const args = text.split(" ")
-
- // ===== HELP =====
- if(text==="help"){
-  return msg.reply(`
-🎰 CASINO
-
-money | daily
-nap <tiền> | code <mã>
-
-slot <tiền>
-bj <tiền>
-xocdia <tiền>
-
-top
-shopvip | buyvip
-
-history
-`)
- }
-
- // ===== MONEY =====
- if(text==="money"){
-  return msg.reply(`💰 ${getMoney(id)}$`)
- }
-
- // ===== DAILY =====
- if(text==="daily"){
-  let now = Date.now()
-  if(daily[id] && now-daily[id]<86400000)
-   return msg.reply("⏳ Chưa đủ 24h")
-
-  daily[id]=now
-  addMoney(id,500)
-  addHistory(id,"🎁 daily")
-
-  return msg.reply("🎁 +500$")
- }
-
- // ===== TOP =====
- if(text==="top"){
-  let top = Object.entries(money)
-   .sort((a,b)=>b[1]-a[1])
-   .slice(0,10)
-
-  let txt = top.map((u,i)=>`${i+1}. <@${u[0]}> - ${u[1]}$`).join("\n")
-  return msg.reply("🏆 TOP GIÀU\n"+txt)
- }
-
- // ===== VIP =====
- if(text==="shopvip"){
-  return msg.reply("💎 VIP = 50,000$ | buyvip")
- }
-
- if(text==="buyvip"){
-  if(getMoney(id)<50000) return msg.reply("Không đủ tiền")
-
-  vip[id]=true
-  addMoney(id,-50000)
-  save()
-
-  return msg.reply("💎 VIP ACTIVATED")
- }
-
- // ===== NẠP =====
- if(text.startsWith("nap")){
-  let amt = parseInt(args[1])
-  if(!amt || amt<=0) return msg.reply("Nhập số hợp lệ")
-
-  addMoney(id,amt)
-  return msg.reply(`💳 +${amt}$`)
- }
-
- // ===== CODE =====
- if(text.startsWith("code")){
-  let c = args[1]?.toUpperCase()
-  if(!c || !code[c]) return msg.reply("Code sai")
-
-  let reward = code[c]
-
-  addMoney(id,reward)
-  delete code[c]
-  save()
-
-  return msg.reply(`💳 +${reward}$`)
- }
-
- // ===== SLOT =====
- if(text.startsWith("slot")){
-  let bet = parseInt(args[1])
-  if(!bet || bet<=0) return msg.reply("Nhập tiền hợp lệ")
-  if(getMoney(id)<bet) return msg.reply("Không đủ tiền")
-
-  const icons=["🍒","🍋","💎","⭐","7️⃣"]
-
-  const embed = new EmbedBuilder().setTitle("🎰 SLOT")
-
-  let m = await msg.reply({embeds:[embed]})
-
-  for(let i=0;i<5;i++){
-   embed.setDescription(
-    Array(3).fill().map(()=>icons[rand(0,4)]).join(" | ")
-   )
-   await m.edit({embeds:[embed]})
-   await new Promise(r=>setTimeout(r,150))
-  }
-
-  let final = Array(3).fill().map(()=>icons[rand(0,4)])
-  let win = Math.random()<0.45
-
-  let reward = bet*(isEvent()?2:1)
-
-  if(win){
-   addMoney(id,reward)
-   addHistory(id,"🎰 WIN")
-  }else{
-   addMoney(id,-bet)
-   addHistory(id,"💀 LOSE")
-  }
-
-  embed.setDescription(final.join(" | ")+"\n"+(win?"🎉 WIN":"💀 LOSE"))
-  m.edit({embeds:[embed]})
- }
-
- // ===== XÓC ĐĨA =====
- if(text.startsWith("xocdia")){
-  let bet = parseInt(args[1])
-  if(!bet || bet<=0) return msg.reply("Nhập tiền")
-  if(getMoney(id)<bet) return msg.reply("Không đủ tiền")
-
-  const embed = new EmbedBuilder().setTitle("🥣 XÓC ĐĨA")
-  let m = await msg.reply({embeds:[embed]})
-
-  for(let i=0;i<4;i++){
-   embed.setDescription("Đang xóc...")
-   await m.edit({embeds:[embed]})
-   await new Promise(r=>setTimeout(r,200))
-  }
-
-  let red = rand(0,4)
-  let win = red>=3 // ~40%
-
-  let reward = bet*(isEvent()?2:1)
-
-  if(win){
-   addMoney(id,reward)
-   addHistory(id,"🥣 WIN")
-  }else{
-   addMoney(id,-bet)
-   addHistory(id,"💀 LOSE")
-  }
-
-  embed.setDescription(`🔴: ${red} | ⚪: ${4-red}\n${win?"WIN":"LOSE"}`)
-  m.edit({embeds:[embed]})
- }
-
- // ===== BLACKJACK =====
- if(text.startsWith("bj")){
-  let bet = parseInt(args[1])
-  if(!bet || bet<=0) return msg.reply("Nhập tiền")
-  if(getMoney(id)<bet) return msg.reply("Không đủ tiền")
-
-  if(bj[id]) return msg.reply("Bạn đang chơi rồi!")
-
-  bj[id]={bet,player:[draw(),draw()],dealer:[draw(),draw()]}
-
-  const row = new ActionRowBuilder().addComponents(
-   new ButtonBuilder().setCustomId("hit_"+id).setLabel("HIT").setStyle(ButtonStyle.Primary),
-   new ButtonBuilder().setCustomId("stand_"+id).setLabel("STAND").setStyle(ButtonStyle.Success)
-  )
-
-  return msg.reply({
-   content:`🃏 ${sum(bj[id].player)}`,
-   components:[row]
-  })
- }
-
- // ===== HISTORY =====
- if(text==="history"){
-  let h = history[id]||[]
-  return msg.reply("📊\n"+(h.join("\n")||"Trống"))
- }
-
-})
-
-// ===== BUTTON =====
-client.on("interactionCreate", async (i)=>{
- if(!i.isButton()) return
-
- let [type,uid] = i.customId.split("_")
- if(i.user.id !== uid) return i.reply({content:"Không phải game của bạn",ephemeral:true})
-
- let g = bj[uid]
- if(!g) return
-
- if(type==="hit"){
-  g.player.push(draw())
-
-  if(sum(g.player)>21){
-   addMoney(uid,-g.bet)
-   delete bj[uid]
-   return i.reply("💀 Quắc")
-  }
-
-  return i.reply(`🃏 ${sum(g.player)}`)
- }
-
- if(type==="stand"){
-  while(sum(g.dealer)<17) g.dealer.push(draw())
-
-  let p=sum(g.player), d=sum(g.dealer)
-  let win = d>21 || p>d
-
-  if(win){
-   addMoney(uid,g.bet*(isEvent()?2:1))
-  }else{
-   addMoney(uid,-g.bet)
-  }
-
-  delete bj[uid]
-
-  return i.reply(`Bạn:${p} | Nhà:${d}\n${win?"WIN":"LOSE"}`)
- }
-})
-
-client.login("YOUR_TOKEN")
+YOUR_DISCORD_ID = 123456789012345678  # THAY BẰNG ID DISCORD CỦA MÀY
+
+# Animation GIF đẹp (link public, chạy ổn)
+ANIM_DICE_ROLL = "https://media.giphy.com/media/3o6Zt6KHxJTzXCnSvu/giphy.gif"  # xúc xắc lăn luxury
+ANIM_BOWL_SHAKE = "https://media.tenor.com/5q5q5q5q5q5AAAAC/xoc-dia-shake.gif"  # rung bát xóc đĩa (thay bằng link thật nếu tìm được)
+ANIM_WIN_MONEY = "https://media.giphy.com/media/26tPplGWjN0xLybiU/giphy.gif"   # tiền bay confetti
+ANIM_LOSE_SAD = "https://media.tenor.com/images/abc123def4567890/sad-lose.gif"  # buồn thua (thay nếu muốn)
+
+@bot.event
+async def on_ready():
+    print(f"Bot casino animation chạy: {bot.user}")
+    try:
+        await bot.tree.sync()
+        print("Sync lệnh OK")
+    except Exception as e:
+        print(e)
+
+@bot.tree.command(name="balance", description="Check xu fake")
+async def balance(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"]:
+        data["users"][user_id] = {"money": 1000, "last_daily": 0}
+        save_data(data)
+    await interaction.response.send_message(f"**{interaction.user.name}** có **{data['users'][user_id]['money']}** xu fake!")
+
+@bot.tree.command(name="daily", description="Nhận xu free")
+async def daily(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"]:
+        data["users"][user_id] = {"money": 1000, "last_daily": 0}
+    
+    now = datetime.utcnow().timestamp()
+    last = data["users"][user_id]["last_daily"]
+    
+    if now - last < COOLDOWN:
+        remaining = int(COOLDOWN - (now - last))
+        h, m = divmod(remaining // 60, 60)
+        await interaction.response.send_message(f"Chờ **{h}h {m}p** mới daily!")
+        return
+    
+    data["users"][user_id]["money"] += DAILY_AMOUNT
+    data["users"][user_id]["last_daily"] = now
+    save_data(data)
+    await interaction.response.send_message(f"Daily +**{DAILY_AMOUNT}** xu! Tổng: **{data['users'][user_id]['money']}**")
+
+@bot.tree.command(name="top", description="Top giàu fake")
+async def top(interaction: discord.Interaction):
+    sorted_users = sorted(data["users"].items(), key=lambda x: x[1]["money"], reverse=True)[:10]
+    msg = "**Top 10 giàu nhất (fake)**\n"
+    for i, (uid, info) in enumerate(sorted_users, 1):
+        try:
+            user = await bot.fetch_user(int(uid))
+            msg += f"{i}. **{user.name}** - **{info['money']}** xu\n"
+        except:
+            msg += f"{i}. User {uid} - **{info['money']}** xu\n"
+    await interaction.response.send_message(msg or "Chưa ai giàu")
+
+@bot.tree.command(name="taixiu", description="Tài Xỉu fake + animation")
+@app_commands.describe(choose="Tài hoặc Xỉu", bet="Số xu cược")
+async def taixiu(interaction: discord.Interaction, choose: str, bet: int):
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"] or data["users"][user_id]["money"] < bet or bet <= 0:
+        await interaction.response.send_message("Hết tiền hoặc bet ngu!")
+        return
+
+    # Animation lăn xúc xắc
+    embed_roll = discord.Embed(title="🎲 ĐANG LẮC TÀI XỈU...", color=0x00ffff)
+    embed_roll.set_image(url=ANIM_DICE_ROLL)
+    await interaction.response.send_message(embed=embed_roll)
+
+    await asyncio.sleep(4)  # chờ animation
+
+    dice = [random.randint(1,6) for _ in range(3)]
+    total = sum(dice)
+    result = "Tài" if total >= 11 else "Xỉu"
+
+    if RIGGED_MODE:
+        win = False if random.random() < RIGGED_WIN_RATE else (choose.lower() in ["tài", "tai"] and result == "Tài") or (choose.lower() in ["xỉu", "xiu"] and result == "Xỉu")
+    else:
+        win = (choose.lower() in ["tài", "tai"] and result == "Tài") or (choose.lower() in ["xỉu", "xiu"] and result == "Xỉu")
+
+    if win:
+        data["users"][user_id]["money"] += bet
+        embed_result = discord.Embed(title="THẮNG LỚN CU!", description=f"Cược **{bet}** → **{choose.upper()}**\nKết quả: {dice} = **{total}** → **{result}**\n+**{bet}** xu\nTổng: **{data['users'][user_id]['money']}**", color=0x00ff00)
+        embed_result.set_image(url=ANIM_WIN_MONEY)
+    else:
+        data["users"][user_id]["money"] -= bet
+        embed_result = discord.Embed(title="THUA MẸ RỒI!", description=f"Cược **{bet}** → **{choose.upper()}**\nKết quả: {dice} = **{total}** → **{result}**\nCòn **{data['users'][user_id]['money']}** xu", color=0xff0000)
+        embed_result.set_image(url=ANIM_LOSE_SAD)  # thay link sad nếu muốn
+
+    save_data(data)
+    await interaction.followup.send(embed=embed_result)
+
+@bot.tree.command(name="xocdia", description="Xóc Đĩa fake + animation")
+@app_commands.describe(choose="Chẵn hoặc Lẻ", bet="Số xu cược")
+async def xocdia(interaction: discord.Interaction, choose: str, bet: int):
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"] or data["users"][user_id]["money"] < bet or bet <= 0:
+        await interaction.response.send_message("Hết tiền hoặc bet ngu!")
+        return
+
+    # Animation rung bát
+    embed_shake = discord.Embed(title="🍲 ĐANG XÓC ĐĨA...", color=0xffd700)
+    embed_shake.set_image(url=ANIM_BOWL_SHAKE)
+    await interaction.response.send_message(embed=embed_shake)
+
+    await asyncio.sleep(4)
+
+    dice = [random.randint(1,6) for _ in range(4)]
+    total = sum(dice)
+    result = "Chẵn" if total % 2 == 0 else "Lẻ"
+
+    if RIGGED_MODE:
+        win = False if random.random() < RIGGED_WIN_RATE else (choose.lower() in ["chẵn", "chan"] and result == "Chẵn") or (choose.lower() in ["lẻ", "le"] and result == "Lẻ")
+    else:
+        win = (choose.lower() in ["chẵn", "chan"] and result == "Chẵn") or (choose.lower() in ["lẻ", "le"] and result == "Lẻ")
+
+    if win:
+        data["users"][user_id]["money"] += bet
+        embed_result = discord.Embed(title="THẮNG ĐỈNH CAO!", description=f"Cược **{bet}** → **{choose.upper()}**\nKết quả: {dice} = **{total}** → **{result}**\n+**{bet}** xu\nTổng: **{data['users'][user_id]['money']}**", color=0x00ff00)
+        embed_result.set_image(url=ANIM_WIN_MONEY)
+    else:
+        data["users"][user_id]["money"] -= bet
+        embed_result = discord.Embed(title="THUA ĐẮNG!", description=f"Cược **{bet}** → **{choose.upper()}**\nKết quả: {dice} = **{total}** → **{result}**\nCòn **{data['users'][user_id]['money']}** xu", color=0xff0000)
+        embed_result.set_image(url=ANIM_LOSE_SAD)
+
+    save_data(data)
+    await interaction.followup.send(embed=embed_result)
+
+# Các lệnh còn lại giữ nguyên (shop, buy, redeem, addcode, rigged)
+@bot.tree.command(name="shop", description="Shop VIP fake")
+async def shop(interaction: discord.Interaction):
+    msg = "**SHOP FAKE VIP**\n"
+    for item, info in SHOP_ITEMS.items():
+        msg += f"- **{item.upper()}**: {info['price']} xu - {info['desc']}\n"
+    await interaction.response.send_message(msg + "\nDùng /buy <tên>")
+
+@bot.tree.command(name="buy", description="Mua VIP fake")
+@app_commands.describe(item="vip_bronze | vip_silver | vip_gold")
+async def buy(interaction: discord.Interaction, item: str):
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"]:
+        await interaction.response.send_message("Dùng /daily trước!")
+        return
+    item = item.lower()
+    if item not in SHOP_ITEMS:
+        await interaction.response.send_message("Item ko tồn tại!")
+        return
+    price = SHOP_ITEMS[item]["price"]
+    if data["users"][user_id]["money"] < price:
+        await interaction.response.send_message(f"Cần {price} xu, mày có {data['users'][user_id]['money']}")
+        return
+    data["users"][user_id]["money"] -= price
+    save_data(data)
+    await interaction.response.send_message(f"Mua **{item.upper()}** OK! VIP fake rồi cu!")
+
+@bot.tree.command(name="redeem", description="Nhập code xu fake")
+@app_commands.describe(code="Code")
+async def redeem(interaction: discord.Interaction, code: str):
+    code = code.upper()
+    if "codes" not in data or code not in data["codes"]:
+        await interaction.response.send_message("Code sai hoặc hết hạn!")
+        return
+    amount = data["codes"][code]
+    user_id = str(interaction.user.id)
+    if user_id not in data["users"]:
+        data["users"][user_id] = {"money": 1000, "last_daily": 0}
+    data["users"][user_id]["money"] += amount
+    del data["codes"][code]
+    save_data(data)
+    await interaction.response.send_message(f"Code **{code}** OK! +**{amount}** xu. Tổng **{data['users'][user_id]['money']}**")
+
+@bot.command()
+async def addcode(ctx, code: str, amount: int):
+    if ctx.author.id != YOUR_DISCORD_ID:
+        return
+    if "codes" not in data:
+        data["codes"] = {}
+    data["codes"][code.upper()] = amount
+    save_data(data)
+    await ctx.send(f"Add code **{code}** +{amount} xu")
+
+@bot.command()
+async def rigged(ctx, mode: str):
+    global RIGGED_MODE
+    if ctx.author.id != YOUR_DISCORD_ID:
+        await ctx.send("Ko phải chủ!")
+        return
+    RIGGED_MODE = mode.lower() == "on"
+    status = "ON - bịp 70%" if RIGGED_MODE else "OFF - fair"
+    await ctx.send(f"Rigged {status}!")
+
+bot.run(os.getenv("BOT_TOKEN"))  # Railway đọc từ biến BOT_TOKEN
