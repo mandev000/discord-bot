@@ -25,7 +25,7 @@ const RIGGED_RATE = 0.60;
 const GAME_TIME = 40000;
 
 let currentGames = {};
-let gameHistory = []; // soi cầu
+let gameHistory = [];
 
 // ================== READY ==================
 client.once('ready', () => {
@@ -40,7 +40,7 @@ client.on('messageCreate', async msg => {
   const cmd = args[0].toLowerCase();
   const user = getUser(msg.author.id);
 
-  if (cmd === 'help') return msg.reply(`💰 **CASINO PRO MAX FULL + COUNTDOWN + SOI CẦU**\n\nbalance\ndaily\ntop\ntaixiu\nxocdia\nsoicau\nredeem <code>`);
+  if (cmd === 'help') return msg.reply(`💰 **CASINO PRO **\n\nbalance\ndaily\ntop\ntaixiu\nxocdia\nsoicau\nredeem <code>`);
   if (cmd === 'balance') return msg.reply(`💰 \( {msg.author.username}: ** \){user.money}** Mcoint`);
   if (cmd === 'daily') {
     if (Date.now() - user.lastDaily < DAILY_CD) return msg.reply('⏳ Chưa tới giờ!');
@@ -60,14 +60,10 @@ client.on('messageCreate', async msg => {
     user.money += amt; save();
     return msg.reply(`🎁 +${amt} Mcoint`);
   }
-
-  // SOI CẦU
   if (cmd === 'soicau') {
     if (!gameHistory.length) return msg.reply('📊 Chưa có ván nào để soi!');
     let text = '📊 **SOI CẦU TÀI XỈU - XÓC ĐĨA** (20 ván gần nhất)\n\n';
-    gameHistory.forEach(h => {
-      text += `${h.time} | ${h.type.toUpperCase()} → ${h.details}\n`;
-    });
+    gameHistory.forEach(h => text += `${h.time} | ${h.type.toUpperCase()} → ${h.details}\n`);
     const taixiu = gameHistory.filter(h => h.type === 'taixiu');
     if (taixiu.length) {
       const taiWin = taixiu.filter(h => h.result === 'tai').length;
@@ -88,7 +84,7 @@ client.on('messageCreate', async msg => {
         { name: 'HŨ', value: '0 Mcoint', inline: true },
         { name: 'TỔNG CƯỢC', value: 'Tài: 0\nXỉu: 0\nChẵn: 0\nLẻ: 0\nSố/Tổng: 0', inline: false }
       )
-      .setFooter({ text: 'Powered by dinhthienman' });
+      .setFooter({ text: 'Powered by mxtbot.com' });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(`bet_${isTaixiu ? 'tai' : 'chan'}`).setLabel(isTaixiu ? 'TÀI' : 'CHẴN').setStyle(ButtonStyle.Success),
@@ -110,24 +106,21 @@ client.on('messageCreate', async msg => {
   }
 });
 
-// COUNTDOWN REALTIME (cập nhật mỗi giây)
+// COUNTDOWN
 async function startCountdown(channelId, seconds) {
   let remaining = seconds;
   const interval = setInterval(async () => {
     remaining--;
     const game = currentGames[channelId];
-    if (!game) { clearInterval(interval); return; }
-
+    if (!game) return clearInterval(interval);
     const channel = client.channels.cache.get(channelId);
-    if (!channel) { clearInterval(interval); return; }
+    if (!channel) return clearInterval(interval);
     const msg = await channel.messages.fetch(game.messageId).catch(() => null);
-    if (!msg) { clearInterval(interval); return; }
+    if (!msg) return clearInterval(interval);
 
     const embed = EmbedBuilder.from(msg.embeds[0]);
     embed.setDescription(`Hãy chọn cửa và ghi số tiền cược\nKết thúc trong: **${remaining} giây tới**`);
-
     await msg.edit({ embeds: [embed] }).catch(() => {});
-
     if (remaining <= 0) clearInterval(interval);
   }, 1000);
 }
@@ -199,7 +192,7 @@ async function updateGameEmbed(channelId) {
   await msg.edit({ embeds: [embed] });
 }
 
-// END GAME + ANIMATION
+// END GAME + ANIMATION (xóa sau khi lắc)
 async function endGame(channelId) {
   const game = currentGames[channelId];
   if (!game) return;
@@ -210,13 +203,16 @@ async function endGame(channelId) {
   const msg = await channel.messages.fetch(game.messageId).catch(() => null);
   if (!msg) return;
 
+  // ANIMATION
   const rollingEmbed = new EmbedBuilder()
     .setTitle(game.type === 'taixiu' ? '🎲 ĐANG LẮC XÚC XẮC...' : '🥣 ĐANG XÓC ĐĨA...')
     .setDescription('🔄 🎲 🔄 🎲 🔄\nĐang lắc lắc nè...')
     .setColor('Yellow');
-  await channel.send({ embeds: [rollingEmbed] });
+  const rollingMsg = await channel.send({ embeds: [rollingEmbed] });
 
   await new Promise(r => setTimeout(r, 2500));
+
+  await rollingMsg.delete().catch(() => {}); // XÓA LUÔN
 
   let winSide, diceStr, resultText;
 
@@ -245,7 +241,6 @@ async function endGame(channelId) {
   }
   save();
 
-  // LƯU VÀO SOI CẦU
   gameHistory.push({
     type: game.type,
     result: winSide,
