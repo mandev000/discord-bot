@@ -12,9 +12,7 @@ const client = new Client({
 const FILE = './data.json';
 let data = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE)) : { users: {}, codes: {} };
 
-function save() {
-  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-}
+function save() { fs.writeFileSync(FILE, JSON.stringify(data, null, 2)); }
 
 function getUser(id) {
   if (!data.users[id]) data.users[id] = { money: 1000, lastDaily: 0 };
@@ -23,10 +21,10 @@ function getUser(id) {
 
 const DAILY = 50;
 const DAILY_CD = 86400000;
-const RIGGED_RATE = 0.60;     // Nhà ăn 60%
-const GAME_TIME = 40000;      // 40 giây
+const RIGGED_RATE = 0.60;
+const GAME_TIME = 40000;
 
-let currentGames = {};        // { channelId: { type, bets, endTime, messageId } }
+let currentGames = {};
 
 // ================== READY ==================
 client.once('ready', () => {
@@ -45,7 +43,9 @@ client.on('messageCreate', async msg => {
     return msg.reply(`💰 **CASINO PRO MAX FULL**\n\nbalance\ndaily\ntop\ntaixiu\nxocdia\nredeem <code>`);
   }
 
-  if (cmd === 'balance') return msg.reply(`💰 \( {msg.author.username}: ** \){user.money}** Mcoint`);
+  if (cmd === 'balance') {
+    return msg.reply(`💰 \( {msg.author.username}: ** \){user.money}** Mcoint`);
+  }
 
   if (cmd === 'daily') {
     if (Date.now() - user.lastDaily < DAILY_CD) return msg.reply('⏳ Chưa tới giờ!');
@@ -68,10 +68,8 @@ client.on('messageCreate', async msg => {
     return msg.reply(`🎁 +${amt} Mcoint`);
   }
 
-  // TÀI XỈU
   if (cmd === 'taixiu') {
     if (currentGames[msg.channelId]) return msg.reply('⚠️ Đang có ván tài xỉu khác!');
-    
     const embed = new EmbedBuilder()
       .setTitle('🎲 TÀI XỈU')
       .setDescription('Hãy chọn cửa và ghi số tiền cược\nKết thúc trong: **40 giây tới**')
@@ -100,10 +98,8 @@ client.on('messageCreate', async msg => {
     setTimeout(() => endGame(msg.channelId), GAME_TIME);
   }
 
-  // XÓC ĐĨA
   if (cmd === 'xocdia') {
     if (currentGames[msg.channelId]) return msg.reply('⚠️ Đang có ván xóc đĩa khác!');
-    
     const embed = new EmbedBuilder()
       .setTitle('🥣 XÓC ĐĨA')
       .setDescription('Hãy chọn cửa và ghi số tiền cược\nKết thúc trong: **40 giây tới**')
@@ -112,7 +108,7 @@ client.on('messageCreate', async msg => {
         { name: 'HŨ', value: '0 Mcoint', inline: true },
         { name: 'TỔNG CƯỢC', value: 'Tài: 0\nXỉu: 0\nChẵn: 0\nLẻ: 0\nSố/Tổng: 0', inline: false }
       )
-      .setFooter({ text: 'Powered by mxtbot.com' });
+      .setFooter({ text: 'Powered by dinhthienman' });
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId('bet_chan').setLabel('CHẴN').setStyle(ButtonStyle.Success),
@@ -133,15 +129,13 @@ client.on('messageCreate', async msg => {
   }
 });
 
-// ================== BUTTON → MODAL ==================
+// BUTTON → MODAL
 client.on('interactionCreate', async interaction => {
   if (!interaction.isButton()) return;
-
   const game = currentGames[interaction.channelId];
   if (!game) return interaction.reply({ content: 'Ván cược đã kết thúc!', ephemeral: true });
 
   const type = interaction.customId.split('_')[1];
-
   const modal = new ModalBuilder()
     .setCustomId(`modal_${type}`)
     .setTitle('💰 Nhập số tiền cược');
@@ -157,10 +151,9 @@ client.on('interactionCreate', async interaction => {
   await interaction.showModal(modal);
 });
 
-// ================== MODAL SUBMIT ==================
+// MODAL SUBMIT
 client.on('interactionCreate', async interaction => {
   if (!interaction.isModalSubmit()) return;
-
   const game = currentGames[interaction.channelId];
   if (!game) return interaction.reply({ content: 'Ván đã kết thúc!', ephemeral: true });
 
@@ -173,29 +166,23 @@ client.on('interactionCreate', async interaction => {
 
   const type = interaction.customId.split('_')[1];
 
-  if (game.type === 'taixiu') {
-    if (type === 'tai' || type === 'xiu') {
-      game.bets[type].push({ user: interaction.user.id, amount, name: interaction.user.username });
-    }
-  } else if (game.type === 'xocdia') {
-    if (type === 'chan' || type === 'le') {
-      game.bets[type].push({ user: interaction.user.id, amount, name: interaction.user.username });
-    }
+  if (game.type === 'taixiu' && (type === 'tai' || type === 'xiu')) {
+    game.bets[type].push({ user: interaction.user.id, amount, name: interaction.user.username });
+  } else if (game.type === 'xocdia' && (type === 'chan' || type === 'le')) {
+    game.bets[type].push({ user: interaction.user.id, amount, name: interaction.user.username });
   }
 
   user.money -= amount;
   save();
 
   await updateGameEmbed(interaction.channelId);
-
   interaction.reply({ content: `✅ Đã cược **\( {amount}** Mcoint vào ** \){type.toUpperCase()}**`, ephemeral: true });
 });
 
-// ================== UPDATE EMBED ==================
+// UPDATE EMBED
 async function updateGameEmbed(channelId) {
   const game = currentGames[channelId];
   if (!game) return;
-
   const channel = client.channels.cache.get(channelId);
   if (!channel) return;
   const msg = await channel.messages.fetch(game.messageId).catch(() => null);
@@ -215,7 +202,7 @@ async function updateGameEmbed(channelId) {
   await msg.edit({ embeds: [embed] });
 }
 
-// ================== END GAME ==================
+// END GAME
 async function endGame(channelId) {
   const game = currentGames[channelId];
   if (!game) return;
@@ -233,10 +220,8 @@ async function endGame(channelId) {
     const d2 = Math.floor(Math.random()*6)+1;
     const d3 = Math.floor(Math.random()*6)+1;
     const sum = d1 + d2 + d3;
-
     winSide = sum >= 11 ? 'tai' : 'xiu';
     if (Math.random() < RIGGED_RATE) winSide = winSide === 'tai' ? 'xiu' : 'tai';
-
     diceStr = `${d1} + ${d2} + ${d3} = ${sum}`;
     resultText = `Kết quả: **${diceStr}**\nChung cuộc: ${winSide.toUpperCase()}`;
   } else {
@@ -247,7 +232,6 @@ async function endGame(channelId) {
 
   const winners = game.bets[winSide] || [];
   let totalWin = 0;
-
   for (const bet of winners) {
     const u = getUser(bet.user);
     const prize = bet.amount * 2;
@@ -267,7 +251,7 @@ async function endGame(channelId) {
   channel.send(`**Kết quả ${game.type.toUpperCase()}**: \( {resultText}\nTổng tiền thắng: ** \){totalWin}** Mcoint`);
 }
 
-// ================== ADMIN ==================
+// ADMIN
 client.on('messageCreate', msg => {
   if (!msg.content.startsWith('!addcode')) return;
   const args = msg.content.split(/\s+/);
